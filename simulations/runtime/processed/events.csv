@@ -1,0 +1,3 @@
+schema_version,captured_at,service,container_id,source_ip,http_method,host,path,query_present,status_code,request_bytes,response_bytes,duration_ms,user_agent,referer,forwarded_for,request_id
+traffic_event.v1,2026-03-24T05:00:00+00:00,webapp,abc123,198.51.100.9,GET,example.local,/,False,200,321,654,17.0,smoke,,"198.51.100.9, 10.0.0.9",req-1
+traffic_event.v1,2026-03-24T05:00:01+00:00,webapp,abc123,203.0.113.2,POST,example.local,/login,True,401,512,1024,125.0,smoke,https://example.local/,203.0.113.2,req-2
