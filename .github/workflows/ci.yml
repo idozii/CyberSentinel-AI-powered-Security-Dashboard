@@ -53,6 +53,8 @@ jobs:
         run: python -m scripts.normalize_dashes --check
       - name: Step 16 hosted identity preflight
         run: python -m scripts.step16_preflight
+      - name: Step 17 Auth0 browser pilot preflight
+        run: python -m scripts.step17_preflight
       - name: Dependency consistency
         run: python -m pip check
 
