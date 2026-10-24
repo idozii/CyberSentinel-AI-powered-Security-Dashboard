@@ -18,7 +18,7 @@ from pathlib import Path
 from contextlib import contextmanager
 from typing import Callable
 
-from cybersentinel_agent.client import AgentError, MAX_LINE_BYTES, send_events, to_minimal_event, validate_local_server
+from cybersentinel_agent.client import AgentError, MAX_LINE_BYTES, send_events, to_minimal_event, validate_ingest_origin
 
 MAX_QUEUE = 1000
 MAX_READ_PER_POLL = 100
@@ -130,12 +130,13 @@ class ContinuousAgent:
 
     def __init__(self, log_path: Path, state_path: Path, domain_id: str, key: str,
                  *, server: str = "http://127.0.0.1:8002", from_start: bool = False,
-                 sender: Callable = send_events, clock: Callable[[], float] = time.time):
+                 sender: Callable = send_events, clock: Callable[[], float] = time.time,
+                 allowed_remote_host: str | None = None):
         self.log_path = Path(log_path).absolute()
         if self.log_path.is_symlink():
             raise AgentError("Refusing a symlinked NGINX log")
         self.log_id = str(self.log_path)
-        validate_local_server(server)
+        validate_ingest_origin(server, allowed_remote_host)
         if not re.fullmatch(r"[0-9a-f]{32}", domain_id):
             raise AgentError("Invalid domain ID")
         if not key.startswith("csa_") or len(key) < 36:
@@ -147,6 +148,7 @@ class ContinuousAgent:
         self.domain_id = domain_id
         self.key = key
         self.server = server
+        self.allowed_remote_host = allowed_remote_host
         self.from_start = from_start
         self.sender = sender
         self.clock = clock
@@ -311,7 +313,11 @@ class ContinuousAgent:
         if any(abs(self.clock() - event["occurred_at"]) >= STALE_SECONDS - 5 for _, event in batch):
             raise AgentError("Queued events are near or past API freshness limit; resolve or explicitly purge expired")
         try:
-            result = self.sender(self.server, self.domain_id, [item for _, item in batch], self.key)
+            if self.allowed_remote_host:
+                result = self.sender(self.server, self.domain_id, [item for _, item in batch],
+                                     self.key, allowed_remote_host=self.allowed_remote_host)
+            else:
+                result = self.sender(self.server, self.domain_id, [item for _, item in batch], self.key)
         except AgentError as exc:
             status = re.search(r"HTTP (\d{3})", str(exc))
             code = int(status.group(1)) if status else None

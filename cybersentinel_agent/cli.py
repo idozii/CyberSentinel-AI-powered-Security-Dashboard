@@ -1,4 +1,4 @@
-"""Run once on a trusted local NGINX JSONL file. No remote endpoints allowed."""
+"""One-shot NGINX adapter with explicit opt-in HTTPS staging ingest."""
 from __future__ import annotations
 
 import argparse
@@ -13,6 +13,7 @@ def main() -> int:
     p.add_argument("--input", required=True, type=Path, help="NGINX JSON access log, one line per event")
     p.add_argument("--domain-id", required=True, help="ID of a DNS-verified domain")
     p.add_argument("--server", default="http://127.0.0.1:8002")
+    p.add_argument("--allow-remote-host", default=None, help="Explicit DNS hostname for HTTPS staging ingestion")
     p.add_argument("--max-events", type=int, default=25)
     args = p.parse_args()
     key = os.environ.get("CYBERSENTINEL_AGENT_KEY", "")
@@ -22,7 +23,8 @@ def main() -> int:
         rows = load_events(args.input, key, args.max_events)
         if not rows:
             p.error("No NGINX events found")
-        response = send_events(args.server, args.domain_id, rows, key)
+        response = send_events(args.server, args.domain_id, rows, key,
+                               allowed_remote_host=args.allow_remote_host)
     except (AgentError, OSError) as exc:
         p.exit(2, f"Agent failed: {exc}\n")
     print(json.dumps({"mode": "local-demo", "submitted": len(rows), **response}, indent=2))

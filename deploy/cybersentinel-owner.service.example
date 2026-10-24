@@ -1,0 +1,25 @@
+# Example systemd service for LOCAL ADMIN API ONLY.
+# Use SSH port forwarding to reach port 8002; do not publish it.
+[Unit]
+Description=CyberSentinel private owner API (staging)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cybersentinel
+Group=cybersentinel
+WorkingDirectory=/opt/cybersentinel/app
+Environment=CYBERSENTINEL_OWNER_DB=/var/lib/cybersentinel/owner.sqlite3
+ExecStart=/opt/cybersentinel/venv/bin/uvicorn owner_api.main:app --host 127.0.0.1 --port 8002 --workers 1
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cybersentinel
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

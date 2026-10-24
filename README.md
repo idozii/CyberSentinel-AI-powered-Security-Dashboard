@@ -125,6 +125,20 @@ docker compose -f simulations/docker-compose.yml down
 
 **Check before trusting results:** `matched_labeled_events == simulation_requests`, `manifest_records_without_event == 0`, and no run ID appears in multiple train/validation/test partitions. Results may vary with timing and library versions. The split manifest and `metrics.json` capture the actual experiment details. See [Reproducibility](docs/REPRODUCIBILITY.md).
 
+
+## Step 14 - Optional HTTPS staging ingest bridge
+
+Step 14 adds a separate **ingest-only** FastAPI app (`owner_api/ingest_only.py`) and
+an opt-in HTTPS agent mode to send minimized telemetry to a VPS staging endpoint.
+The public surface is limited to authenticated `POST /agent/v1/ingest` behind a
+Caddy exact-path rule. The private Owner API and Owner Portal stay on localhost or
+behind an administrator-operated SSH tunnel. This is **not** an openly hosted
+multi-user Owner Portal, a public SaaS launch, or a production security service.
+
+See [Step 14 guide](docs/HUONG_DAN_BUOC_14.md) and
+[Hosted staging security](docs/HOSTED_STAGING_SECURITY.md). Run
+`python -m scripts.step14_preflight` as an additional source-level check.
+
 ## Quality checks
 
 ```bash
