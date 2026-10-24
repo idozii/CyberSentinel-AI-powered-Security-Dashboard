@@ -1,0 +1,16 @@
+services:
+  webapp:
+    image: nginxdemos/hello
+    container_name: cs-webapp
+
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: cs-proxy
+    depends_on:
+      - webapp
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./runtime/logs:/var/log/nginx
+

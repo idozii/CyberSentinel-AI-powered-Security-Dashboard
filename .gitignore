@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# Virtual environments and local configuration
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Generated CyberSentinel telemetry and training artifacts
+simulations/runtime/logs/
+simulations/runtime/raw/
+simulations/runtime/processed/
+tests/.tmp/
+
+# Operating system / editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
