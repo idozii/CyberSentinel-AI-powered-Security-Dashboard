@@ -1,0 +1,97 @@
+name: CyberSentinel CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-tests:
+    name: Unit tests / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-ml.txt
+      - name: Install ML dependencies
+        run: python -m pip install -r requirements-ml.txt
+      - name: Compile Python
+        run: python -m compileall -q scripts tests
+      - name: Run all unit tests (no remote traffic)
+        run: python -m unittest discover -s tests -v
+      - name: Dependency consistency
+        run: python -m pip check
+
+  docker-local-smoke:
+    name: Local NGINX / webapp smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Start isolated localhost lab
+        run: docker compose -f simulations/docker-compose.yml up --build -d --wait
+      - name: Check HTTP 200 and issued request ID
+        run: |
+          python - <<'PY'
+          from urllib.request import build_opener, ProxyHandler
+          opener = build_opener(ProxyHandler({}))
+          with opener.open('http://127.0.0.1:8080/health', timeout=5) as r:
+              assert r.status == 200
+              assert r.headers.get('X-CyberSentinel-Request-ID')
+          PY
+      - name: End-to-end smoke test with 11 localhost requests
+        run: |
+          mkdir -p /tmp/cyber-step6
+          python scripts/attack_replay.py --scenario mixed --attempts 3 --concurrency 2 \
+            --manifest-path /tmp/cyber-step6/labels.jsonl > /tmp/cyber-step6/replay.json
+          python scripts/collector.py \
+            --input simulations/runtime/logs/access.log \
+            --output-dir /tmp/cyber-step6/raw --target-service webapp
+          python scripts/etl.py \
+            --input-dir /tmp/cyber-step6/raw \
+            --output /tmp/cyber-step6/events.csv --format csv
+          python scripts/build_labeled_dataset.py \
+            --events /tmp/cyber-step6/events.csv \
+            --manifest /tmp/cyber-step6/labels.jsonl \
+            --output /tmp/cyber-step6/labeled.csv --strict > /tmp/cyber-step6/join.json
+          python scripts/build_window_features.py \
+            --input /tmp/cyber-step6/labeled.csv \
+            --output /tmp/cyber-step6/windows.csv --window-seconds 60 > /tmp/cyber-step6/windows.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/cyber-step6')
+          replay=json.loads((root/'replay.json').read_text())
+          join=json.loads((root/'join.json').read_text())
+          windows=json.loads((root/'windows.json').read_text())
+          assert replay['total_requests'] == 11
+          assert replay['statuses'] == {'401': 3, '404': 8}, replay
+          assert join['matched_labeled_events'] == 11, join
+          assert join['manifest_records_without_event'] == 0, join
+          assert windows['labeled_events'] == 11, windows
+          assert windows['windows'] >= 1, windows
+          PY
+      - name: Diagnostic logs on failure
+        if: failure()
+        run: docker compose -f simulations/docker-compose.yml logs --tail=60 webapp proxy
+      - name: Always remove local containers
+        if: always()
+        run: docker compose -f simulations/docker-compose.yml down --remove-orphans
