@@ -67,6 +67,12 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_step20_evaluation.py -v
           python -m scripts.step20_evaluate
+      - name: Step 21 threshold experiment safety preflight
+        run: python -m scripts.step21_preflight
+      - name: Step 21 synthetic quality regression gate
+        run: |
+          python -m unittest discover -s tests -p test_step21_tuning.py -v
+          python -m scripts.step21_quality_gate
       - name: Dependency consistency
         run: python -m pip check
 

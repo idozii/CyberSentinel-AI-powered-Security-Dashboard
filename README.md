@@ -325,3 +325,22 @@ events or keys.
 
 See [Step 20 instructions](docs/HUONG_DAN_BUOC_20.md) and
 [benchmark limitations](docs/STEP20_EVALUATION_LIMITATIONS.md).
+
+### Step 21 - Offline synthetic quality gate and threshold sensitivity
+
+Step 21 compares a bounded 81-candidate threshold grid against the frozen Step 20
+hand-labeled scenarios using an explicit 8-scenario development and 6-scenario
+synthetic validation split. The split illustrates overfitting: a development
+improvement does not establish generalization. The candidate is **never**
+automatically applied to local demo, PostgreSQL staging, or production rules.
+
+```bash
+python -m scripts.step21_preflight
+python -m unittest discover -s tests -p test_step21_tuning.py -v
+python -m scripts.step21_quality_gate
+python -m scripts.step21_quality_gate --output-dir /tmp/cyber-step21-report
+```
+
+In the isolated localhost Demo (`CYBERSENTINEL_LOCAL_DEMO=1`, port `8019`),
+open `/demo/tuning`. No Auth0, domain, Neon access, or migration is needed.
+See `docs/HUONG_DAN_BUOC_21.md` and `docs/STEP21_QUALITY_LIMITATIONS.md`.

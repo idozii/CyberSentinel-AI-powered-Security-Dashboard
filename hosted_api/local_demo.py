@@ -257,6 +257,8 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
                      '<code>docs/HUONG_DAN_BUOC_19.md</code>.</p>')
         contents += ('<p><a href="/demo/evaluation">Step 20 - evaluate synthetic detection quality '
                      '(precision, recall, false alarms and misses)</a></p>')
+        contents += ('<p><a href="/demo/tuning">Step 21 - offline threshold sensitivity '
+                     'and synthetic quality gate</a></p>')
         contents += '<h2>Detection alerts</h2>'
         if not data['alerts']:
             contents += '<p>No alerts yet. Send five synthetic login 401 events.</p>'
@@ -315,6 +317,37 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
                     'No evaluation data is stored on this server.</p>')
         content += ('<p><a href="/">Back to local dashboard</a></p>')
         return _page('Synthetic detection evaluation - Step 20', content)
+
+    @app.get('/demo/tuning')
+    def tuning():
+        # Read-only synthetic simulation; never reads active demo credentials,
+        # Auth0, staging Postgres, or real telemetry.
+        from hosted_api.demo_tuning import run_shadow_experiment
+        result = run_shadow_experiment()
+        content = ('<p class="notice">Offline synthetic sensitivity only. Candidate thresholds '
+                   'must not be applied to staging, production, or the active demo detector.</p>')
+        content += ('<p>Development scenarios: ' + _esc(len(result['development_scenarios']))
+                    + ' | Frozen synthetic validation scenarios: ' + _esc(len(result['validation_scenarios']))
+                    + ' | Candidates: ' + _esc(result['candidate_count']) + '</p>')
+        content += '<h2>Thresholds</h2><table><tr><th>Rule</th><th>Baseline</th><th>Offline candidate</th></tr>'
+        for rid, value in result['baseline_thresholds'].items():
+            content += ('<tr><td>' + _esc(rid) + '</td><td>' + _esc(value) + '</td><td>'
+                        + _esc(result['candidate_thresholds'][rid]) + '</td></tr>')
+        content += '</table><h2>F1 comparison</h2><table><tr><th>Partition</th><th>Baseline</th><th>Candidate</th></tr>'
+        for part in ('development', 'validation'):
+            base = result['baseline_' + part]['metrics']['f1']
+            candidate = result['candidate_' + part]['metrics']['f1']
+            def fmt(value):
+                return 'N/A' if value is None else str(round(value * 100, 2)) + '%'
+            content += ('<tr><td>' + _esc(part) + '</td><td>' + _esc(fmt(base))
+                        + '</td><td>' + _esc(fmt(candidate)) + '</td></tr>')
+        content += '</table>'
+        content += ('<p>Candidate selection used development rows only. The holdout contains '
+                    'only six manually labeled synthetic scenarios and is not independent real-world evidence.</p>')
+        content += ('<p>Export with <code>python -m scripts.step21_quality_gate '
+                    '--output-dir /tmp/cyber-step21-report</code>.</p>')
+        content += '<p><a href="/">Back to local dashboard</a></p>'
+        return _page('Synthetic threshold sensitivity - Step 21', content)
 
     @app.post('/demo/key')
     async def key(req: Request):
