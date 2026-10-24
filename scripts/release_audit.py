@@ -54,6 +54,11 @@ REQUIRED_FILES = (
     "docs/HUONG_DAN_BUOC_11.md",
     "docs/OWNER_AGENT_SECURITY.md",
     "pyproject.toml",
+    "owner_api/detection.py",
+    "tests/test_step12_alerts.py",
+    "scripts/generate_step12_demo_logs.py",
+    "docs/HUONG_DAN_BUOC_12.md",
+    "docs/OWNER_DETECTION_DESIGN.md",
 )
 REQUIRED_GITIGNORE = (
     ".venv/",
