@@ -1,0 +1,56 @@
+{
+  "schema_version": "public_showcase.v1",
+  "display_mode": "static_research_summary",
+  "source": {
+    "date": "2026-10-24",
+    "description": "User-reported results from one controlled, localhost-only CyberSentinel simulation, documented in docs/EXPERIMENT_RESULTS.md. These are not measurements of production security performance.",
+    "dataset": "Controlled Docker / NGINX lab",
+    "seed": 42,
+    "window_seconds": 60,
+    "simulation_runs": 160,
+    "simulated_requests": 2678,
+    "matched_requests": 2678,
+    "manifest_gaps": 0,
+    "excluded_historical_events": 232,
+    "feature_windows": 160,
+    "features": 14,
+    "runs_per_class": 40
+  },
+  "windows_by_scenario": {
+    "simulated_benign": 40,
+    "simulated_brute_force": 40,
+    "simulated_path_scan": 40,
+    "simulated_mixed_attack": 40
+  },
+  "splits": {
+    "train_benign_windows": 24,
+    "validation_windows": 32,
+    "test_windows": 32,
+    "test_benign": 8,
+    "test_attack": 24
+  },
+  "validation": {
+    "isolation_forest": {"tn": 7, "fp": 1, "fn": 17, "tp": 7, "precision": 0.875, "recall": 0.2917, "f1": 0.4375, "fpr": 0.125, "ap": 0.8586}
+  },
+  "test": {
+    "isolation_forest": {"tn": 8, "fp": 0, "fn": 17, "tp": 7, "precision": 1.0, "recall": 0.2917, "f1": 0.4516, "fpr": 0.0, "ap": 0.8839},
+    "fixed_rule": {"tn": 8, "fp": 0, "fn": 0, "tp": 24, "precision": 1.0, "recall": 1.0, "f1": 1.0, "fpr": 0.0},
+    "attack_scenarios": {
+      "Brute-force": {"detected": 5, "total": 8},
+      "Mixed": {"detected": 2, "total": 8},
+      "Path scanning": {"detected": 0, "total": 8}
+    }
+  },
+  "model": {
+    "algorithm": "Isolation Forest",
+    "trees": 200,
+    "frozen_anomaly_threshold": 0.5819654503959275,
+    "target_validation_fpr": 0.05,
+    "feature_names": [
+      "request_count", "request_rate_per_second", "get_ratio", "post_ratio",
+      "login_attempt_count", "failed_login_count", "unique_path_count",
+      "http_401_ratio", "http_404_ratio", "http_4xx_ratio", "query_ratio",
+      "mean_duration_ms", "mean_request_bytes", "mean_response_bytes"
+    ]
+  }
+}
