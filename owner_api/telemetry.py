@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from owner_api.store import OwnerError, OwnerStore
+from owner_api.detection import DetectionStore
 
 KEY_PREFIX = "csa_"
 MAX_ACTIVE_KEYS = 3
@@ -53,6 +54,7 @@ class TelemetryStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_events_domain_time ON telemetry_events(domain_id, received_at);
             """)
+        self.detector = DetectionStore(self.owners)
 
     @staticmethod
     def _verified_domain(conn: sqlite3.Connection, owner_id: str, domain_id: str):
@@ -113,6 +115,7 @@ class TelemetryStore:
         if not token.startswith(KEY_PREFIX) or not 36 <= len(token) <= 100:
             raise OwnerError("Invalid agent credentials", 401)
         accepted = duplicates = 0
+        accepted_events: list[dict[str, Any]] = []
         with self.owners._db(write=True) as conn:
             key = conn.execute(
                 "SELECT agent_keys.id, agent_keys.domain_id FROM agent_keys "
@@ -139,10 +142,13 @@ class TelemetryStore:
                 )
                 if inserted.rowcount:
                     accepted += 1
+                    accepted_events.append(ev)
                 else:
                     duplicates += 1
+            new_alerts = self.detector.process_new_events(conn, domain_id, accepted_events, now)
             conn.execute("UPDATE agent_keys SET last_used_at=? WHERE id=?", (now, key["id"]))
-        return {"accepted": accepted, "duplicates": duplicates, "domain_id": domain_id}
+        return {"accepted": accepted, "duplicates": duplicates, "domain_id": domain_id,
+                "alerts_updated": new_alerts}
 
     def recent(self, owner_id: str, domain_id: str, limit: int = 50) -> dict:
         if not 1 <= limit <= 100:

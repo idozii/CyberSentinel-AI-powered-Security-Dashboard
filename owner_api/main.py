@@ -114,7 +114,7 @@ def create_app(db_path: Path | None = None, txt_lookup: Callable[[str], list[str
 
     @api.get("/owner/health")
     def health():
-        return {"status": "ok", "mode": "local-owner-onboarding", "live_monitoring": False, "agent_ingestion": True}
+        return {"status": "ok", "mode": "local-owner-onboarding", "live_monitoring": False, "agent_ingestion": True, "local_rule_alerts": True}
 
     @api.post("/owner/register", status_code=201)
     def register(payload: Registration):
@@ -179,6 +179,15 @@ def create_app(db_path: Path | None = None, txt_lookup: Callable[[str], list[str
     @api.post("/agent/v1/ingest")
     def ingest_events(payload: TelemetryBatch, key: str = Depends(token_from_credentials)):
         return telemetry.ingest(key, payload.domain_id, [e.model_dump() for e in payload.events])
+
+    @api.get("/owner/domains/{domain_id}/alerts")
+    def list_alerts(domain_id: str, limit: int = 50, status: str | None = None,
+                    user: dict = Depends(get_me)):
+        return telemetry.detector.list_alerts(user["id"], domain_id, limit=limit, status=status)
+
+    @api.post("/owner/domains/{domain_id}/alerts/{alert_id}/acknowledge")
+    def acknowledge_alert(domain_id: str, alert_id: str, user: dict = Depends(get_me)):
+        return telemetry.detector.acknowledge(user["id"], domain_id, alert_id)
 
     @api.delete("/owner/domains/{domain_id}", status_code=204)
     def delete(domain_id: str, user: dict = Depends(get_me)):

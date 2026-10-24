@@ -132,7 +132,8 @@ def send_events(server: str, domain_id: str, events: list[dict], key: str) -> di
             if response.status != 200:
                 raise AgentError("Unexpected ingest status")
             result = json.loads(response.read(2048))
-            return {"accepted": result["accepted"], "duplicates": result["duplicates"]}
+            return {"accepted": result["accepted"], "duplicates": result["duplicates"],
+                    "alerts_updated": result.get("alerts_updated", 0)}
     except error.HTTPError as exc:
         raise AgentError(f"Local ingest rejected request (HTTP {exc.code})") from None
     except (error.URLError, OSError, ValueError, KeyError) as exc:

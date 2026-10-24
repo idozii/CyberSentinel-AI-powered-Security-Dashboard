@@ -31,8 +31,37 @@ def call(method: str, path: str, body: dict | None = None, authenticated: bool =
         raise RuntimeError("Cannot connect to the local Owner API on port 8002") from exc
 
 
+
+@st.fragment(run_every="10s")
+def show_alerts(domain_id: str) -> None:
+    st.markdown("#### Local detection alerts")
+    st.caption("Auto-refreshes every 10 seconds while this page is open. Advisory signals, not confirmed attacks.")
+    if st.button("Refresh alerts", key="refresh-alerts-" + domain_id):
+        st.rerun()
+    try:
+        alerts = call("GET", f"/owner/domains/{domain_id}/alerts?limit=50")
+    except RuntimeError as exc:
+        st.error(str(exc))
+        alerts = {"alerts": [], "total_alerts": 0}
+    st.metric("Rule alerts", alerts["total_alerts"])
+    for entry in alerts["alerts"]:
+        with st.expander(f"{entry['severity'].upper()}: {entry['title']} - {entry['status']}"):
+            st.write(entry["explanation"])
+            st.write(f"Rule: `{entry['rule_id']}`")
+            st.write(f"Count: {entry['observed_count']} / {entry['threshold_count']}")
+            st.write(f"60-second window start: {entry['window_start']} (Unix UTC)")
+            st.write(f"Pseudonymous source: `{entry['source_ref'][:8]}...`")
+            if entry["status"] == "open":
+                if st.button("Acknowledge", key="ack-" + entry["id"]):
+                    try:
+                        call("POST", f"/owner/domains/{domain_id}/alerts/{entry['id']}/acknowledge")
+                        st.rerun()
+                    except RuntimeError as exc:
+                        st.error(str(exc))
+
+
 st.title("🛡️ CyberSentinel - Owner Onboarding")
-st.caption("LOCAL DEVELOPMENT ONLY · Owner accounts and DNS TXT verification · No live monitoring or alerts yet")
+st.caption("LOCAL DEVELOPMENT ONLY · Owner accounts and DNS TXT verification · Local rule-based alerts; not a hosted 24/7 service")
 st.info("This portal is intentionally separate from the public Streamlit demo. Do not deploy it on Streamlit Community Cloud.")
 try:
     health = call("GET", "/owner/health", authenticated=False)
@@ -184,6 +213,7 @@ else:
                 if history["events"]:
                     st.dataframe(history["events"], hide_index=True, use_container_width=True)
                     st.caption("Pseudonymous per-day source references, no raw IPs or request URLs.")
+                show_alerts(item["id"])
                 if st.button("Revoke claim", key="revoke-" + item["id"]):
                     try:
                         call("DELETE", f"/owner/domains/{item['id']}")
@@ -192,4 +222,4 @@ else:
                         st.error(str(exc))
 
 st.divider()
-st.caption("Local agent ingestion does not provide production-grade monitoring or live attack detection. Domain DNS proof is not a guarantee of legal ownership.")
+st.caption("Local rule alerts do not provide production-grade monitoring or verified attack detection. Domain DNS proof is not a guarantee of legal ownership.")

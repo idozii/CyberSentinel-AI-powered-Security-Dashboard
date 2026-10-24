@@ -146,6 +146,7 @@ The release audit checks repository layout and looks for accidentally tracked ru
 | `dashboard_api/`, `dashboard/` | Local read-only API, public checker and Streamlit applications |
 | `owner_api/`, `owner_portal/` | Local-only domain verification, key management, owner telemetry view |
 | `cybersentinel_agent/`, `pyproject.toml` | Local-only NGINX JSONL adapter, installable CLI package |
+| `owner_api/detection.py` | Explainable owner-scoped 60-second rule alerts (Step 12) |
 | `scripts/normalize_dashes.py` | Convert em/en dashes to ASCII hyphens in Git-tracked text |
 | `.github/workflows/ci.yml`, `tests/` | Continuous integration and regression tests |
 | `docs/` | Architecture, reproducibility, methodology and limitations |
@@ -156,7 +157,7 @@ The release audit checks repository layout and looks for accidentally tracked ru
 2. Per-run aggregation is valid for experiment bookkeeping, **not** for a deployed live detector, which cannot know simulation run IDs.
 3. The fixed scan paths and simple benign request patterns may overstate generalization. A stronger future study needs authentic benign errors, more varied attack behavior and an independent dataset.
 4. Validation includes only eight benign windows in the recorded study; a target 5% false-positive rate is therefore coarsely estimated.
-5. A local-only owner account prototype and scoped telemetry ingestion exist, but there is no managed hosted authentication, production RBAC, public ingress, continuous agent daemon or real-time alerting. Keep owner services bound to loopback.
+5. A local-only owner account prototype and scoped telemetry ingestion exist, but there is no managed hosted authentication, production RBAC, public ingress, continuous agent daemon, production alert delivery or autonomous mitigation. The Step 12 local rule alerts update on ingest and refresh in an open portal. Keep owner services bound to loopback.
 
 **This project demonstrates a reproducible experimental workflow, not a security product.**
 
@@ -187,3 +188,9 @@ See [Step 11 setup](docs/HUONG_DAN_BUOC_11.md) and [Owner agent security](docs/O
 - [DarealDanh](https://github.com/darealDanh) - Lab Attack Simulation
 
 _Contributions above reflect the project's stated team roles; consult Git history for specific authorship._
+
+## Local security alerts (Step 12)
+
+Once a DNS-verified domain has an agent key, submitting sanitized HTTP telemetry to the local API computes per-source 60-second windows and produces advisory alerts for repeated login failures, HTTP 404 bursts, HTTP 5xx bursts and high request volume. Alerts are stored in SQLite under the owner's domain, can be acknowledged, and are refreshed in the local portal every 10 seconds while the browser page remains open. No Isolation Forest weights are loaded for operational decisions.
+
+See [Step 12 guide](docs/HUONG_DAN_BUOC_12.md) and [Detection design](docs/OWNER_DETECTION_DESIGN.md). This is an opt-in localhost demonstration, not hosted threat monitoring or a production intrusion detection service.
