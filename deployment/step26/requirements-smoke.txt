@@ -1,0 +1,4 @@
+# Only packages imported by the in-process localhost release smoke.
+fastapi>=0.115,<1
+httpx>=0.27,<1
+argon2-cffi>=23.1,<26

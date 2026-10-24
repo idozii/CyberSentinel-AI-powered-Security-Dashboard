@@ -1,0 +1,20 @@
+# Safe local container rehearsal: intentionally cannot accept or send traffic.
+services:
+  smoke:
+    build:
+      context: ../..
+      dockerfile: deployment/step26/Dockerfile
+    network_mode: none
+    read_only: true
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 768m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    environment:
+      CYBERSENTINEL_LOCAL_DEMO: "1"
+    command: ["python", "-m", "scripts.step25_release"]

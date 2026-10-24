@@ -363,3 +363,16 @@ python -m scripts.step25_demo
 Open `http://127.0.0.1:8019/`. No production security claims: the local
 single-tenant dataset disappears on restart; agent buffering, hosted deployment,
 real-world validation and independent review remain future work.
+
+## Fast-track Steps 26-30 - Private deployment/beta-readiness rehearsal
+
+The [Steps 26-30 runbook](docs/HUONG_DAN_BUOC_26_30.md) adds an offline
+non-networked Docker smoke, runtime RLS audit, in-memory local operations
+counters, synthetic reliability drills, and an explicit limited-beta
+Go/No-Go gate. **It does not make the system public or production-ready.**
+
+Run `python -m scripts.step26_30_release` from a clean local environment.
+The private demo operations view is at `http://127.0.0.1:8019/demo/operations`
+when the local Step 25 demo is running. The beta gate must remain BLOCKED
+until independent review and actual deployment/consent/operational evidence.
+See [beta limitations](docs/BETA_GO_NO_GO.md).

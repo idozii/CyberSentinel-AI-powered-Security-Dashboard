@@ -62,12 +62,20 @@ class DemoStore:
         self.ids: set[str] = set()
         self.alerts: dict[tuple[str, int, str], dict] = {}
         self.issued_at: float | None = None
+        self.started_at = time.monotonic()
+        self.operation_counts = {
+            'keys_issued': 0, 'batches_received': 0, 'events_accepted': 0,
+            'duplicates_ignored': 0, 'alerts_updated': 0,
+            'invalid_credentials': 0, 'invalid_events': 0,
+            'capacity_rejections': 0,
+        }
 
     def issue_key(self) -> str:
         with self.lock:
             token = TOKEN_PREFIX + secrets.token_urlsafe(32)
             self._token_hash = hashlib.sha256(token.encode('ascii')).hexdigest()
             self.issued_at = time.time()
+            self.operation_counts['keys_issued'] += 1
             # Replacing a token must never silently preserve old demonstration data.
             self.events.clear()
             self.ids.clear()
@@ -79,25 +87,30 @@ class DemoStore:
                  and self._token_hash is not None
                  and secrets.compare_digest(hashlib.sha256(token.encode()).hexdigest(), self._token_hash))
         if not valid or domain_id != self.domain_id:
+            self.operation_counts['invalid_credentials'] += 1
             raise HTTPException(401, detail='Invalid local demo agent key or domain')
         now = time.time()
         for event in events:
             if (type(event['occurred_at']) is not int or abs(event['occurred_at'] - now) > 300
                     or event['method'] not in METHODS or event['path_group'] not in GROUPS):
+                self.operation_counts['invalid_events'] += 1
                 raise HTTPException(422, detail='Invalid or stale demo event')
         return now
 
     def ingest(self, token: str, domain_id: uuid.UUID, events: list[dict]) -> dict:
         with self.lock:
+            self.operation_counts['batches_received'] += 1
             now = self._validate(token, domain_id, events)
             new = [ev for ev in events if ev['event_id'] not in self.ids]
             # Reject duplicate event IDs even inside a single batch. No partial writes.
             unique_new = {ev['event_id']: ev for ev in new}
             newly = list(unique_new.values())
             if len(self.events) + len(newly) > MAX_EVENTS:
+                self.operation_counts['capacity_rejections'] += 1
                 raise HTTPException(429, detail='Local demo capacity reached; issue a new key to reset')
             minute_count = sum(1 for ev in self.events if ev['received_at'] >= now - 60)
             if minute_count + len(newly) > MAX_PER_MINUTE:
+                self.operation_counts['capacity_rejections'] += 1
                 raise HTTPException(429, detail='Local demo rate limit reached')
             for ev in newly:
                 record = {**ev, 'received_at': now}
@@ -132,6 +145,9 @@ class DemoStore:
                     elif count > previous['observed_count']:
                         previous['observed_count'] = count
                         updated += 1
+            self.operation_counts['events_accepted'] += len(newly)
+            self.operation_counts['duplicates_ignored'] += len(events) - len(newly)
+            self.operation_counts['alerts_updated'] += updated
             return {'accepted': len(newly), 'duplicates': len(events) - len(newly),
                     'alerts_updated': updated, 'domain_id': self.domain_id.hex, 'mode': 'local-demo'}
 
@@ -158,6 +174,19 @@ class DemoStore:
                 if alert['id'] == alert_id:
                     return evidence(alert, self.events)
         return None
+
+    def operations_snapshot(self) -> dict:
+        """Aggregate counters only - never include agent key, domain or source IDs."""
+        with self.lock:
+            return {
+                'mode': 'local-demo-only', 'persistent': False,
+                'uptime_seconds': max(0, int(time.monotonic() - self.started_at)),
+                'event_capacity': MAX_EVENTS,
+                'events_in_memory': len(self.events),
+                'alerts_in_memory': len(self.alerts),
+                'counts': dict(self.operation_counts),
+                'warning': 'Synthetic local counters, reset on process restart; not hosted observability.',
+            }
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -271,6 +300,7 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
         contents += ('<p>After copying your one-time <code>csd_</code> key, run the sample NGINX '
                      'agent against <code>http://127.0.0.1:8019</code>. See '
                      '<code>docs/HUONG_DAN_BUOC_19.md</code>.</p>')
+        contents += '<p><a href="/demo/operations">Step 28 - local operational counters</a></p>'
         contents += ('<p><a href="/demo/evaluation">Step 20 - evaluate synthetic detection quality '
                      '(precision, recall, false alarms and misses)</a></p>')
         contents += ('<p><a href="/demo/tuning">Step 21 - offline threshold sensitivity '
@@ -419,6 +449,27 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
             lines.append('<li>'+_esc(group)+': '+_esc(n)+'</li>')
         lines.append('</ul><p><a href="/demo/alerts">Back to triage</a></p>')
         return _page('Alert evidence - Step 22', ''.join(lines))
+
+    @app.get('/demo/operations.json')
+    def operations_json():
+        return db.operations_snapshot()
+
+    @app.get('/demo/operations')
+    def operations_page():
+        import html as _html
+        snapshot = db.operations_snapshot()
+        lines = [
+            '<p class="notice">Local synthetic aggregate counters only. '
+            'No production SLO, uptime guarantee or cloud health inference.</p>',
+            '<p>Process uptime (seconds): <strong>' + str(snapshot['uptime_seconds']) + '</strong></p>',
+            '<p>Events in memory: <strong>' + str(snapshot['events_in_memory']) + '</strong></p>',
+            '<p>Alerts in memory: <strong>' + str(snapshot['alerts_in_memory']) + '</strong></p>',
+            '<table><tr><th>Counter</th><th>Count</th></tr>',
+        ]
+        for name, value in sorted(snapshot['counts'].items()):
+            lines.append('<tr><td>' + _html.escape(name) + '</td><td>' + str(value) + '</td></tr>')
+        lines.append('</table><p><a href="/">Back to local dashboard</a></p>')
+        return _page('Local operations - Step 28', ''.join(lines))
 
     @app.post('/demo/key')
     async def key(req: Request):

@@ -79,6 +79,12 @@ jobs:
           python -m scripts.step25_preflight
           python -m scripts.step24_failure_analysis
           python -m scripts.step25_release
+      - name: Steps 26-30 local beta-readiness offline regression
+        run: |
+          python -m unittest discover -s tests -p test_step26_30_fasttrack.py -v
+          python -m scripts.step26_30_preflight
+          python -m scripts.step26_30_release
+          python -m scripts.step30_beta_gate --expect-blocked
       - name: Dependency consistency
         run: python -m pip check
 
@@ -140,6 +146,19 @@ jobs:
         if: always()
         run: docker compose -f simulations/docker-compose.yml down --remove-orphans
 
+  container-isolation-smoke:
+    name: Offline container isolation smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check Docker Compose exists
+        run: docker compose version
+      - name: Build and execute isolated offline smoke
+        run: docker compose -f deployment/step26/compose.smoke.yml up --build --abort-on-container-exit --exit-code-from smoke
+      - name: Remove containers
+        if: always()
+        run: docker compose -f deployment/step26/compose.smoke.yml down --remove-orphans
+
   postgres-rls-staging:
     name: PostgreSQL RLS and OIDC foundation
     runs-on: ubuntu-latest
@@ -180,5 +199,9 @@ jobs:
         run: python -m unittest discover -s tests -p test_step16_postgres.py -v
       - name: Step 18 real PostgreSQL RLS and ingestion tests
         run: python -m unittest discover -s tests -p test_step18_postgres.py -v
+      - name: Step 27 read-only RLS runtime metadata inspection
+        run: |
+          export CYBERSENTINEL_PG_RUNTIME_DSN="$CYBERSENTINEL_TEST_PG_RUNTIME_DSN"
+          python -m scripts.step27_tenant_audit --live
       - name: Cryptographic OIDC and hosted API tests
         run: python -m unittest discover -s tests -p test_step16_hosted.py -v
