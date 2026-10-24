@@ -57,6 +57,10 @@ jobs:
         run: python -m scripts.step17_preflight
       - name: Step 18 monitoring preflight
         run: python -m scripts.step18_preflight
+      - name: Step 19 isolated localhost demo preflight
+        run: python -m scripts.step19_preflight
+      - name: Step 19 security and integration tests
+        run: python -m unittest discover -s tests -p test_step19_demo.py -v
       - name: Dependency consistency
         run: python -m pip check
 
