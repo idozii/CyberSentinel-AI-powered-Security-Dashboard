@@ -1,4 +1,4 @@
-"""Run a bounded continuous localhost log follower; one process per state file.
+"""Run a bounded continuous log follower; one process per state file.
 
 The process runs in the foreground until stopped by Ctrl+C. It does not
 install a background service, expose public endpoints or expand network scope.
@@ -45,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--domain-id", required=True)
     p.add_argument("--state", type=Path, default=DEFAULT_STATE)
     p.add_argument("--server", default="http://127.0.0.1:8002")
+    p.add_argument("--allow-remote-host", default=None, help="Explicit HTTPS staging hostname")
     p.add_argument("--poll-seconds", type=float, default=1.0)
     p.add_argument("--iterations", type=int, default=0, help="0 means foreground watch until Ctrl+C")
     p.add_argument("--from-start", action="store_true", help="First use only: read all existing complete lines")
@@ -64,7 +65,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         with single_instance(args.state):
             agent = ContinuousAgent(args.input, args.state, args.domain_id, key,
-                                    server=args.server, from_start=args.from_start)
+                                    server=args.server, from_start=args.from_start,
+                                    allowed_remote_host=args.allow_remote_host)
             if args.purge_expired:
                 print(json.dumps({"purged_expired": agent.store.purge_expired(confirm_loss=True)}), flush=True)
             iteration = 0

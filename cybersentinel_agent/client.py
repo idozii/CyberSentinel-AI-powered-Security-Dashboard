@@ -1,4 +1,4 @@
-"""Minimal-data NGINX JSONL adapter and localhost-only delivery.
+"""Minimal-data NGINX JSONL adapter and opt-in HTTPS staging delivery.
 
 Raw IPs, URLs, queries, request bodies, User-Agent, cookies and passwords
 never leave this process. An HMAC pseudonym represents the client per UTC day.
@@ -43,6 +43,45 @@ def validate_local_server(url: str) -> str:
         raise AgentError("Server URL must be exactly http://127.0.0.1:8002")
     return "http://127.0.0.1:8002"
 
+
+
+def validate_ingest_origin(url: str, allowed_remote_host: str | None = None) -> str:
+    """Keep loopback mode by default; permit ONLY an explicitly pinned HTTPS hostname.
+
+    The remote host is an operator-controlled CLI option, not a value accepted from
+    arbitrary network requests. urllib provides certificate and hostname validation.
+    No redirects or proxy environment variables are permitted by send_events.
+    """
+    if url == "http://127.0.0.1:8002" or url == "http://127.0.0.1:8002/":
+        return validate_local_server(url)
+    if allowed_remote_host is None:
+        raise AgentError("Remote HTTPS requires --allow-remote-host")
+    if not isinstance(allowed_remote_host, str) or not allowed_remote_host:
+        raise AgentError("Invalid approved HTTPS hostname")
+    if not isinstance(url, str) or len(url) > 300:
+        raise AgentError("Invalid ingest URL")
+    try:
+        parsed = parse.urlsplit(url)
+        port = parsed.port
+        host = parsed.hostname
+    except (ValueError, TypeError) as exc:
+        raise AgentError("Invalid ingest URL") from exc
+    hostname_pattern = re.compile(r"^(?=.{4,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])$")
+    if (parsed.scheme != "https" or not host or host != allowed_remote_host
+            or not hostname_pattern.fullmatch(host)
+            or "." not in host or ".." in host or host.endswith(".localhost")
+            or host.endswith((".local", ".internal", ".test", ".invalid", ".example", ".onion"))
+            or host.startswith("xn--") or ".xn--" in host
+            or parsed.username or parsed.password or parsed.query or parsed.fragment
+            or parsed.path not in ("", "/") or port not in (None, 443)):
+        raise AgentError("Remote ingest must be an approved HTTPS DNS origin on port 443")
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        raise AgentError("Remote ingest host cannot be an IP literal")
+    return f"https://{host}"
 
 def _as_int(value, field: str, max_value: int) -> int:
     try:
@@ -113,8 +152,9 @@ def to_minimal_event(row: dict, key: str) -> dict:
     }
 
 
-def send_events(server: str, domain_id: str, events: list[dict], key: str) -> dict:
-    base = validate_local_server(server)
+def send_events(server: str, domain_id: str, events: list[dict], key: str,
+                *, allowed_remote_host: str | None = None) -> dict:
+    base = validate_ingest_origin(server, allowed_remote_host)
     if not key.startswith("csa_") or len(key) < 36:
         raise AgentError("Missing or invalid agent key")
     if not 1 <= len(events) <= MAX_BATCH:
@@ -135,9 +175,9 @@ def send_events(server: str, domain_id: str, events: list[dict], key: str) -> di
             return {"accepted": result["accepted"], "duplicates": result["duplicates"],
                     "alerts_updated": result.get("alerts_updated", 0)}
     except error.HTTPError as exc:
-        raise AgentError(f"Local ingest rejected request (HTTP {exc.code})") from None
+        raise AgentError(f"Ingest rejected request (HTTP {exc.code})") from None
     except (error.URLError, OSError, ValueError, KeyError) as exc:
-        raise AgentError("Cannot deliver batch to local owner API") from exc
+        raise AgentError("Cannot deliver batch to configured ingest API") from exc
 
 
 def load_events(file: Path, key: str, max_events: int = 25) -> list[dict]:
