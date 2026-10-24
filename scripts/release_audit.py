@@ -37,6 +37,14 @@ REQUIRED_FILES = (
     "docs/REPRODUCIBILITY.md",
     "docs/SECURITY_AND_LIMITATIONS.md",
     "docs/PORTFOLIO_DEMO.md",
+    "owner_api/__init__.py",
+    "owner_api/main.py",
+    "owner_api/store.py",
+    "owner_api/dns_verify.py",
+    "owner_portal/app.py",
+    "requirements-owner.txt",
+    "docs/HUONG_DAN_BUOC_10.md",
+    "docs/OWNER_PLATFORM_ROADMAP.md",
 )
 REQUIRED_GITIGNORE = (
     ".venv/",
@@ -44,6 +52,7 @@ REQUIRED_GITIGNORE = (
     "simulations/runtime/logs/",
     "simulations/runtime/raw/",
     "simulations/runtime/processed/",
+    "simulations/runtime/owner/",
 )
 SERIALIZED_SUFFIXES = (".joblib", ".pkl", ".pickle", ".p12", ".pem", ".key")
 
@@ -61,7 +70,7 @@ def unsafe_tracked_path(raw: str) -> bool:
         return True
     if basename.endswith(SERIALIZED_SUFFIXES) or basename.endswith(".pyc"):
         return True
-    if len(parts) >= 3 and parts[:2] == ("simulations", "runtime") and parts[2] in ("logs", "raw", "processed"):
+    if len(parts) >= 3 and parts[:2] == ("simulations", "runtime") and parts[2] in ("logs", "raw", "processed", "owner"):
         return True
     return False
 
