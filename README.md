@@ -221,3 +221,21 @@ cybersentinel-agent-watch --input simulations/runtime/logs/access.log \
 ```
 
 Set `CYBERSENTINEL_AGENT_KEY` locally first. The default on a new state file is to start at the end of the existing log. Use `--from-start` only for a new, fresh demonstration log. The backend still accepts only events within five minutes, so old queue items require operator attention. This is not hosted 24/7 monitoring. See [Step 13 instructions](docs/HUONG_DAN_BUOC_13.md) and [Reliability design](docs/AGENT_RELIABILITY.md).
+
+## Private owner staging operations (Step 15)
+
+Step 15 adds private SSH-tunnel access to the staging Owner Portal and safe, operator-run
+SQLite backup, restore verification and retention commands. The portal stays bound
+to 127.0.0.1, and the public Caddy proxy still serves only agent ingestion.
+This is not public signup or hosted multi-tenant SaaS.
+
+```bash
+python -m scripts.step15_ops inspect
+python -m scripts.step15_ops retention
+python -m scripts.step15_ops backup
+python -m scripts.step15_preflight
+```
+
+Backups contain sensitive owner information and must remain private and encrypted
+before off-host transport. See [Step 15 guide](docs/HUONG_DAN_BUOC_15.md) and
+[Operations security](docs/STEP15_OPERATIONS_SECURITY.md).
