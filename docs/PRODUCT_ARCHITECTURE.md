@@ -1,6 +1,6 @@
-# CyberSentinel Product Architecture — Two Audience Modes
+# CyberSentinel Product Architecture - Two Audience Modes
 
-**Status (Step 9):** Public passive HTTPS posture checker is implemented. Research showcase is retained. Owner live monitoring is a **planned product**, not an implemented feature.
+**Status (Step 11):** Public passive HTTPS posture checker and local owner-scoped event ingestion are implemented. The public research showcase is retained. Hosted, continuous owner monitoring and automated alerts remain **planned**.
 
 ## Two distinct trust and data paths
 
@@ -8,21 +8,22 @@
 flowchart TB
   V[Public visitor] --> UI[CyberSentinel web]
   O[Verified website owner] --> UI
-  UI --> P[Public HTTPS posture checker — Step 9]
+  UI --> P[Public HTTPS posture checker - Step 9]
   P --> DNS[Validate DNS answers and pin public IPv4]
   DNS --> HTTPS[Exactly one HTTPS HEAD request to / on :443]
   HTTPS --> SCORE[Header observations and configuration-completeness score]
   SCORE --> UI
-  O --> VERIFY[Future: authenticate and verify domain ownership]
-  VERIFY --> AGENT[Future: opt-in agent / log integration]
-  AGENT --> INGEST[Future: authenticated tenant-scoped ingestion API]
-  INGEST --> QUEUE[Future: bounded event worker and windowing]
+  O --> VERIFY[Step 10: authenticate and verify domain ownership]
+  VERIFY --> AGENT[Step 11: local opt-in NGINX agent]
+  AGENT --> INGEST[Step 11: owner-scoped localhost ingestion API]
+  INGEST --> SQLITE[Step 11: local SQLite metadata storage]
+  SQLITE --> QUEUE[Future: bounded event worker and windowing]
   QUEUE --> RULES[Future: transparent detections and audited ML experiments]
   RULES --> DB[Future: tenant-scoped storage, retention, alerts]
   DB --> UI
 ```
 
-### Boundary A — public checker (implemented now)
+### Boundary A - public checker (implemented now)
 
 A public website checker provides strictly **limited observations**, not security assurance:
 
@@ -31,12 +32,12 @@ A public website checker provides strictly **limited observations**, not securit
 - `HEAD / HTTP/1.1` over verified TLS, HTTPS port 443 only; a single connection with timeout.
 - Do not follow redirects; do not probe login paths, vulnerability endpoints, subdomains, scripts or credentials.
 - Evaluate HSTS, CSP presence, nosniff, Referrer-Policy, Permissions-Policy presence and framing protection.
-- 0–100 points mean **configuration completeness of six observations**, *not* safety, compliance or likelihood of compromise.
+- 0-100 points mean **configuration completeness of six observations**, *not* safety, compliance or likelihood of compromise.
 - Some HEAD-rejecting/redirecting or IPv6-only sites cannot be scored in this MVP.
 - Checks are transient: no server-side storage is added by Step 9; target hosts and DNS resolvers can still observe network activity.
 - A browser-session demo quota (3 checks/10 minutes) does **not** stop global abuse. Before serious public exposure, add deployment-level request quotas, bot protection, monitored egress filtering, resource/cost budgets, and security review.
 
-### Boundary B — owner monitoring (planned, NOT implemented)
+### Boundary B - local owner ingestion implemented; production monitoring not implemented
 
 Owner control and tenant boundaries must be prerequisites for sending security telemetry:
 
@@ -47,7 +48,7 @@ Owner control and tenant boundaries must be prerequisites for sending security t
 5. **Detection:** start with explainable rules. Run anomaly scores only as an experimental supplement until independent benign/attack evaluations demonstrate acceptable recall and alert burden. Never equate a low configuration score with an active attack.
 6. **Owner dashboard:** overview, live traffic, evidence-backed alerts, acknowledge/silence, retention/delete/export and audit trail. Push via WebSocket/SSE later; polling is sufficient for a first owner MVP.
 
-## Logical data model — future owner service
+## Logical data model - future owner service
 
 | Table / collection | Important fields | Key rule |
 |---|---|---|
@@ -64,7 +65,7 @@ Owner control and tenant boundaries must be prerequisites for sending security t
 
 - **Step 9 (now):** passive HTTPS posture checker on existing public Streamlit app, with SSRF tests and research showcase preserved.
 - **Step 10:** owner auth, domain ownership verification and tenant-scoped dashboard skeleton; no agent data before verification.
-- **Step 11:** installable Python/NGINX telemetry agent with opt-in ingestion to authenticated FastAPI backend, validation and event storage.
+- **Step 11 (local prototype implemented):** installable Python/NGINX telemetry agent with opt-in localhost ingestion, owner-scoped keys, validation and SQLite event storage.
 - **Step 12:** bounded live window processing, first explainable alerts and near-real-time dashboard updates.
 - **Step 13:** independent detection evaluation, operational privacy/security audit, load tests, rate limits and deployment review.
 

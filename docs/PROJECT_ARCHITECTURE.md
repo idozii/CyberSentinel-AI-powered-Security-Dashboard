@@ -1,4 +1,4 @@
-# CyberSentinel — System Architecture
+# CyberSentinel - System Architecture
 
 ## Scope
 

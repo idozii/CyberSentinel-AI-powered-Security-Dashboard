@@ -1,4 +1,4 @@
-# CyberSentinel — Publish a Streamlit portfolio showcase
+# CyberSentinel - Publish a Streamlit portfolio showcase
 
 > This deployment is a **static research showcase** with real reported, *aggregated* results from the controlled 24 October 2026 localhost experiment. It is **not** the local dashboard backed by FastAPI, not live threat monitoring, and not an operational IDS.
 

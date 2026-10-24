@@ -1,4 +1,4 @@
-# Experiment Report — CyberSentinel Local Simulation (24 October 2026)
+# Experiment Report - CyberSentinel Local Simulation (24 October 2026)
 
 ## Executive summary
 

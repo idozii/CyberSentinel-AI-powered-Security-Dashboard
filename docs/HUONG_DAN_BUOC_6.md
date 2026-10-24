@@ -1,4 +1,4 @@
-# CyberSentinel — Bước 6: Robustness Audit + GitHub Actions CI
+# CyberSentinel - Bước 6: Robustness Audit + GitHub Actions CI
 
 ## Mục tiêu
 
@@ -6,10 +6,10 @@
 
 ### File mới (chỉ thêm, không ghi đè code Bước 5)
 
-- `scripts/audit_detector_robustness.py` — kiểm tra split disjoint, train/validation/test coverage, threshold reproducible từ benign validation, đối chiếu saved test metrics, stress-test đã đóng băng mô hình.
-- `tests/test_step6_robustness.py` — 10 unit tests mới; gồm ba lỗi dữ liệu bị từ chối và test end-to-end không làm thay đổi model artifact.
-- `.github/workflows/ci.yml` — job Python matrix + job Docker localhost smoke.
-- `docs/HUONG_DAN_BUOC_6.md` — hướng dẫn này.
+- `scripts/audit_detector_robustness.py` - kiểm tra split disjoint, train/validation/test coverage, threshold reproducible từ benign validation, đối chiếu saved test metrics, stress-test đã đóng băng mô hình.
+- `tests/test_step6_robustness.py` - 10 unit tests mới; gồm ba lỗi dữ liệu bị từ chối và test end-to-end không làm thay đổi model artifact.
+- `.github/workflows/ci.yml` - job Python matrix + job Docker localhost smoke.
+- `docs/HUONG_DAN_BUOC_6.md` - hướng dẫn này.
 
 ### Giới hạn quan trọng
 
@@ -90,9 +90,9 @@ Nếu kiểm tra nào sai, script **dừng mà không ghi báo cáo cuối**; kh
 
 Ba phép thử what-if (đều trên holdout test đã biết, không tạo independent samples):
 
-- `latency_payload_shift_all_test`: tăng latency và kích thước HTTP request, giảm response bytes — kiểm tra sensitivity của score trước biến động hạ tầng.
-- `two_auth_typos_benign_only`: giả sử user bình thường nhập sai mật khẩu 2 lần — kiểm tra nguy cơ báo động giả khi benign traffic không hoàn toàn sạch.
-- `reduced_attack_volume_attack_only`: giảm xấp xỉ một nửa số request và count features — kiểm tra độ nhạy với hoạt động thấp hơn. Đây chỉ là **proportional feature thinning**, không thay thế slow-attack replay thực tế.
+- `latency_payload_shift_all_test`: tăng latency và kích thước HTTP request, giảm response bytes - kiểm tra sensitivity của score trước biến động hạ tầng.
+- `two_auth_typos_benign_only`: giả sử user bình thường nhập sai mật khẩu 2 lần - kiểm tra nguy cơ báo động giả khi benign traffic không hoàn toàn sạch.
+- `reduced_attack_volume_attack_only`: giảm xấp xỉ một nửa số request và count features - kiểm tra độ nhạy với hoạt động thấp hơn. Đây chỉ là **proportional feature thinning**, không thay thế slow-attack replay thực tế.
 
 **Không cần chạy lại 160 phiên**, không cần Docker cho audit này.
 

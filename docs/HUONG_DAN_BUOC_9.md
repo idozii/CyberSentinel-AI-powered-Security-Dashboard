@@ -1,4 +1,4 @@
-# CyberSentinel — Bước 9: Public Website Checker + Owner Platform Architecture
+# CyberSentinel - Bước 9: Public Website Checker + Owner Platform Architecture
 
 ## Đã có vs chưa có
 

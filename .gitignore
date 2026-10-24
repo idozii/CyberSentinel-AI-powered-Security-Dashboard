@@ -29,3 +29,8 @@ Thumbs.db
 
 # Step 10 local owner SQLite database (contains account email/password hashes)
 simulations/runtime/owner/
+
+# Editable local agent installation output
+*.egg-info/
+build/
+dist/
