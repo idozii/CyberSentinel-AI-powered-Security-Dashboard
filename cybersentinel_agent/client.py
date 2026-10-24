@@ -56,6 +56,8 @@ def validate_ingest_origin(url: str, allowed_remote_host: str | None = None) -> 
         return validate_local_server(url)
     if url in ("http://127.0.0.1:8008", "http://127.0.0.1:8008/"):
         return "http://127.0.0.1:8008"
+    if url in ("http://127.0.0.1:8019", "http://127.0.0.1:8019/"):
+        return "http://127.0.0.1:8019"
     if allowed_remote_host is None:
         raise AgentError("Remote HTTPS requires --allow-remote-host")
     if not isinstance(allowed_remote_host, str) or not allowed_remote_host:
@@ -157,9 +159,13 @@ def to_minimal_event(row: dict, key: str) -> dict:
 def send_events(server: str, domain_id: str, events: list[dict], key: str,
                 *, allowed_remote_host: str | None = None) -> dict:
     base = validate_ingest_origin(server, allowed_remote_host)
-    if (not isinstance(key, str) or not key.startswith(("csa_", "csp_"))
-            or len(key) < 36):
+    if not isinstance(key, str) or len(key) < 36:
         raise AgentError("Missing or invalid agent key")
+    if base == "http://127.0.0.1:8019":
+        if not key.startswith("csd_"):
+            raise AgentError("Port 8019 accepts only local demo keys (csd_)")
+    elif key.startswith("csd_") or not key.startswith(("csa_", "csp_")):
+        raise AgentError("Local demo keys cannot be used with staging or legacy APIs")
     if not 1 <= len(events) <= MAX_BATCH:
         raise AgentError("Batch must contain 1..25 events")
     if not re.fullmatch(r"[0-9a-f]{32}", domain_id):

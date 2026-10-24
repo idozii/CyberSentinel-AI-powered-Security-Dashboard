@@ -277,3 +277,23 @@ owner portal controls. Existing SQLite agent and public showcase are unchanged.
 Follow [Step 18 instructions](docs/HUONG_DAN_BUOC_18.md) and
 [security limitations](docs/STEP18_MONITORING_SECURITY.md). Do not expose the
 new port 8008 publicly or deploy without the PostgreSQL CI integration tests.
+
+
+## Step 19 - Isolated localhost demo (no domain / Auth0 / Neon)
+
+Step 19 provides a completely separate, **opt-in, in-memory-only** simulation on
+`http://127.0.0.1:8019`. It generates a fake demo domain and local-only `csd_`
+agent keys, accepts synthetic NGINX telemetry using the existing CLI adapter,
+and displays explainable alert rules. It does **not** bypass DNS verification
+on the real owner portal (8007) or modify PostgreSQL (8008).
+
+```bash
+export CYBERSENTINEL_LOCAL_DEMO=1
+uvicorn hosted_api.local_demo:factory --factory --host 127.0.0.1 --port 8019 --workers 1
+```
+
+Open `http://127.0.0.1:8019/`, click "Generate new local demo key", copy the
+one-time key and the displayed demo domain ID. Then follow
+[Step 19 instructions](docs/HUONG_DAN_BUOC_19.md) and
+[isolation and limitations](docs/STEP19_DEMO_SECURITY.md).
+All demo data and keys disappear on restart. Never run this service publicly.
