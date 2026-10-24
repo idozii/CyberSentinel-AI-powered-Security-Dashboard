@@ -61,6 +61,12 @@ jobs:
         run: python -m scripts.step19_preflight
       - name: Step 19 security and integration tests
         run: python -m unittest discover -s tests -p test_step19_demo.py -v
+      - name: Step 20 synthetic detection evaluation preflight
+        run: python -m scripts.step20_preflight
+      - name: Step 20 synthetic benchmark and report tests
+        run: |
+          python -m unittest discover -s tests -p test_step20_evaluation.py -v
+          python -m scripts.step20_evaluate
       - name: Dependency consistency
         run: python -m pip check
 
