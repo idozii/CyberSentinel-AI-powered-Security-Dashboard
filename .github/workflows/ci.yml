@@ -55,6 +55,8 @@ jobs:
         run: python -m scripts.step16_preflight
       - name: Step 17 Auth0 browser pilot preflight
         run: python -m scripts.step17_preflight
+      - name: Step 18 monitoring preflight
+        run: python -m scripts.step18_preflight
       - name: Dependency consistency
         run: python -m pip check
 
@@ -154,5 +156,7 @@ jobs:
           PY
       - name: Real PostgreSQL RLS integration tests
         run: python -m unittest discover -s tests -p test_step16_postgres.py -v
+      - name: Step 18 real PostgreSQL RLS and ingestion tests
+        run: python -m unittest discover -s tests -p test_step18_postgres.py -v
       - name: Cryptographic OIDC and hosted API tests
         run: python -m unittest discover -s tests -p test_step16_hosted.py -v

@@ -267,3 +267,13 @@ See `docs/HUONG_DAN_BUOC_16.md` and `docs/HUONG_DAN_BUOC_17.md`.
 This is **not public SaaS**: PostgreSQL telemetry and alerts are not migrated,
 there is no distributed session store, HTTPS web-cookie configuration or audited
 production login deployment. Never bind the private portal to `0.0.0.0`.
+
+## Step 18 - Private PostgreSQL monitoring pilot
+
+A separately gated PostgreSQL telemetry/alerts stack is available for localhost
+staging. It includes checksum migration 002, three FORCE RLS tables, per-domain
+hashed agent keys, idempotent event ingestion, rule-based alerts and Auth0
+owner portal controls. Existing SQLite agent and public showcase are unchanged.
+Follow [Step 18 instructions](docs/HUONG_DAN_BUOC_18.md) and
+[security limitations](docs/STEP18_MONITORING_SECURITY.md). Do not expose the
+new port 8008 publicly or deploy without the PostgreSQL CI integration tests.

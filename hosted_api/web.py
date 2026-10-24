@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from hosted_api.postgres import HostedError, HostedStore, identity_id
+from hosted_api.monitoring import MonitoringStore
 from hosted_api.settings import HostedSettings
 from hosted_api.web_auth import (Auth0CodeExchange, COOKIE, FLOW_COOKIE, MemorySessions,
                                   WebLoginError, WebSettings)
@@ -39,10 +40,11 @@ def page(title: str, content: str, *, csrf: str | None = None) -> HTMLResponse:
 
 
 def create_web_app(settings: WebSettings | None = None, exchanger=None,
-                   store=None, sessions=None, dns_lookup=None) -> FastAPI:
+                   store=None, sessions=None, dns_lookup=None, monitoring=None) -> FastAPI:
     cfg = settings or WebSettings.from_env()
     exchange = exchanger or Auth0CodeExchange(cfg)
     pg = store or HostedStore(cfg.hosted.runtime_dsn)
+    ops = monitoring or MonitoringStore(cfg.hosted.runtime_dsn)
     state = sessions or MemorySessions()
     dns = dns_lookup or lookup_txt
     api = FastAPI(title='CyberSentinel Private Browser Pilot',
@@ -147,6 +149,8 @@ def create_web_app(settings: WebSettings | None = None, exchanger=None,
         for item in domains:
             lines.append('<div class="box"><strong>'+esc(item['domain'])+'</strong> - '
                          + ('Verified' if item['verified'] else 'Awaiting DNS proof'))
+            if item['verified']:
+                lines.append('<p><a href="/domains/'+esc(item['id'])+'/monitor">Manage monitoring</a></p>')
             if not item['verified']:
                 lines.append('<form method="post" action="/domains/'+esc(item['id'])+'/verify">'
                              '<input type="hidden" name="_csrf" value="'+esc(sess.csrf)+'">'
@@ -186,6 +190,68 @@ def create_web_app(settings: WebSettings | None = None, exchanger=None,
                     + ('Verified' if result['verified'] else 'Pending')+'</p>'
                     '<p><a href="/domains">Return to your domains</a></p>')
 
+    @api.get('/domains/{domain_id}/monitor')
+    def monitor(req: Request, domain_id: uuid.UUID):
+        sess = current(req)
+        keys = ops.list_keys(sess.subject,domain_id)
+        recent = ops.recent(sess.subject,domain_id,limit=20)
+        alerts = ops.list_alerts(sess.subject,domain_id,limit=20)
+        lines = [('<p>Agent domain ID: <code>'+esc(domain_id.hex)+'</code></p>'
+                  '<p>Private test endpoint: <code>http://127.0.0.1:8008</code>. '
+                  'Do not expose this endpoint to the internet.</p>')]
+        lines.append('<h3>Agent keys</h3>')
+        for k in keys:
+            lines.append('<div class="box"><strong>'+esc(k['label'])+'</strong>'
+                         '<form method="post" action="/domains/'+esc(domain_id)+'/keys/'+esc(k['id'])+'/revoke">'
+                         '<input type="hidden" name="_csrf" value="'+esc(sess.csrf)+'">'
+                         '<button type="submit">Revoke key</button></form></div>')
+        lines.append('<form method="post" action="/domains/'+esc(domain_id)+'/keys">'
+                     '<label>Key label <input name="label" maxlength="64" required></label>'
+                     '<input type="hidden" name="_csrf" value="'+esc(sess.csrf)+'">'
+                     '<button type="submit">Issue agent key</button></form>')
+        lines.append('<h3>Recent events ('+esc(recent['total_events'])+')</h3>')
+        for ev in recent['events']:
+            lines.append('<div class="box"><code>'+esc(ev['path_group'])+' '+esc(ev['status_code'])
+                         +' '+esc(ev['agent_event_id'])+'</code></div>')
+        lines.append('<h3>Alerts ('+esc(alerts['total_alerts'])+')</h3>')
+        for alert in alerts['alerts']:
+            lines.append('<div class="box"><strong>'+esc(alert['title'])+'</strong> - '
+                         +esc(alert['status'])+'<p>'+esc(alert['explanation'])+'</p>')
+            if alert['status'] == 'open':
+                lines.append('<form method="post" action="/domains/'+esc(domain_id)
+                             +'/alerts/'+esc(alert['id'])+'/acknowledge">'
+                             '<input type="hidden" name="_csrf" value="'+esc(sess.csrf)+'">'
+                             '<button type="submit">Acknowledge</button></form>')
+            lines.append('</div>')
+        lines.append('<p><a href="/domains">Back to domains</a></p>')
+        return page('Domain monitoring', ''.join(lines))
+
+    @api.post('/domains/{domain_id}/keys')
+    async def issue_agent_key(req: Request, domain_id: uuid.UUID):
+        sess = current(req)
+        fields = await post_fields(req)
+        check_csrf(fields,sess)
+        key = ops.issue_key(sess.subject,domain_id,fields.get('label',''))
+        return page('Agent key - copy once', '<p>This key is shown only once. Store it securely.</p>'
+                    '<p><code>'+esc(key['agent_key'])+'</code></p>'
+                    '<p><a href="/domains/'+esc(domain_id)+'/monitor">Back to monitoring</a></p>')
+
+    @api.post('/domains/{domain_id}/keys/{key_id}/revoke')
+    async def revoke_agent_key(req: Request, domain_id: uuid.UUID, key_id: uuid.UUID):
+        sess = current(req)
+        fields = await post_fields(req)
+        check_csrf(fields,sess)
+        ops.revoke_key(sess.subject,domain_id,key_id)
+        return RedirectResponse('/domains/'+str(domain_id)+'/monitor',status_code=303)
+
+    @api.post('/domains/{domain_id}/alerts/{alert_id}/acknowledge')
+    async def acknowledge_alert(req: Request, domain_id: uuid.UUID, alert_id: uuid.UUID):
+        sess = current(req)
+        fields = await post_fields(req)
+        check_csrf(fields,sess)
+        ops.acknowledge(sess.subject,domain_id,alert_id)
+        return RedirectResponse('/domains/'+str(domain_id)+'/monitor',status_code=303)
+
     @api.post('/auth/logout')
     async def logout(req: Request):
         sess = current(req)
@@ -199,7 +265,7 @@ def create_web_app(settings: WebSettings | None = None, exchanger=None,
     @api.get('/health')
     def health():
         return {'status':'ok','mode':'private-auth0-browser-staging',
-                'public_signup':False, 'telemetry_postgres_migrated':False}
+                'public_signup':False, 'telemetry_postgres_migrated':False, 'postgres_monitoring_pilot':True}
 
     return api
 

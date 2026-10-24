@@ -54,6 +54,8 @@ def validate_ingest_origin(url: str, allowed_remote_host: str | None = None) -> 
     """
     if url == "http://127.0.0.1:8002" or url == "http://127.0.0.1:8002/":
         return validate_local_server(url)
+    if url in ("http://127.0.0.1:8008", "http://127.0.0.1:8008/"):
+        return "http://127.0.0.1:8008"
     if allowed_remote_host is None:
         raise AgentError("Remote HTTPS requires --allow-remote-host")
     if not isinstance(allowed_remote_host, str) or not allowed_remote_host:
@@ -155,7 +157,8 @@ def to_minimal_event(row: dict, key: str) -> dict:
 def send_events(server: str, domain_id: str, events: list[dict], key: str,
                 *, allowed_remote_host: str | None = None) -> dict:
     base = validate_ingest_origin(server, allowed_remote_host)
-    if not key.startswith("csa_") or len(key) < 36:
+    if (not isinstance(key, str) or not key.startswith(("csa_", "csp_"))
+            or len(key) < 36):
         raise AgentError("Missing or invalid agent key")
     if not 1 <= len(events) <= MAX_BATCH:
         raise AgentError("Batch must contain 1..25 events")
