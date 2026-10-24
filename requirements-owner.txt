@@ -1,0 +1,3 @@
+# Install alongside requirements-dashboard.txt for FastAPI and TestClient.
+argon2-cffi>=23.1,<26
+dnspython>=2.6,<3
