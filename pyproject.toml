@@ -12,6 +12,7 @@ dependencies = []
 [project.scripts]
 cybersentinel-agent = "cybersentinel_agent.cli:main"
 cybersentinel-agent-watch = "cybersentinel_agent.watch_cli:main"
+cybersentinel-demo-agent = "cybersentinel_agent.demo_cli:main"
 
 [tool.setuptools]
 packages = ["cybersentinel_agent"]
