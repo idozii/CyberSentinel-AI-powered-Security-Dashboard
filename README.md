@@ -239,3 +239,16 @@ python -m scripts.step15_preflight
 Backups contain sensitive owner information and must remain private and encrypted
 before off-host transport. See [Step 15 guide](docs/HUONG_DAN_BUOC_15.md) and
 [Operations security](docs/STEP15_OPERATIONS_SECURITY.md).
+
+## Private PostgreSQL and OIDC pilot (Step 16)
+
+Step 16 adds a **separate localhost-only** API under `hosted_api/` to validate
+OIDC RS256 access tokens and store identity-scoped domain claims in PostgreSQL.
+The migration enforces FORCE ROW LEVEL SECURITY with a dedicated unprivileged
+application role, and CI runs an actual PostgreSQL 17 isolation test.
+
+**Not migrated:** prior SQLite accounts, telemetry, agent keys, and alerts.
+No browser OAuth login, public signup, or internet-facing owner portal is
+delivered in Step 16. Existing APIs and dashboards remain unchanged.
+
+See [Step 16 guide](docs/HUONG_DAN_BUOC_16.md) and [identity/database security](docs/STEP16_DATABASE_IDENTITY_SECURITY.md).
