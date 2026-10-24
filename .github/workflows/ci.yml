@@ -35,10 +35,12 @@ jobs:
         run: python -m pip install -r requirements-dashboard.txt
       - name: Install Step 10 owner auth dependencies
         run: python -m pip install -r requirements-owner.txt
+      - name: Install Step 16 OIDC and Postgres dependencies
+        run: python -m pip install -r requirements-hosted.txt
       - name: Install local telemetry agent package
         run: python -m pip install -e .
       - name: Compile Python
-        run: python -m compileall -q scripts tests dashboard_api dashboard owner_api owner_portal cybersentinel_agent scripts
+        run: python -m compileall -q scripts tests dashboard_api dashboard owner_api owner_portal cybersentinel_agent hosted_api
       - name: Run all unit tests (no remote traffic)
         run: python -m unittest discover -s tests -v
       - name: Step 8 source release audit
@@ -49,6 +51,8 @@ jobs:
         run: python -m scripts.step15_preflight
       - name: Text style check (em/en dashes)
         run: python -m scripts.normalize_dashes --check
+      - name: Step 16 hosted identity preflight
+        run: python -m scripts.step16_preflight
       - name: Dependency consistency
         run: python -m pip check
 
@@ -109,3 +113,44 @@ jobs:
       - name: Always remove local containers
         if: always()
         run: docker compose -f simulations/docker-compose.yml down --remove-orphans
+
+  postgres-rls-staging:
+    name: PostgreSQL RLS and OIDC foundation
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: cybersentinel_stage
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-ephemeral-admin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cybersentinel_stage"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      CYBERSENTINEL_TEST_PG_ADMIN_DSN: postgresql://postgres:ci-ephemeral-admin@127.0.0.1:5432/cybersentinel_stage
+      CYBERSENTINEL_TEST_PG_RUNTIME_DSN: postgresql://cybersentinel_runtime:ci-ephemeral-runtime@127.0.0.1:5432/cybersentinel_stage
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install hosted backend dependencies
+        run: python -m pip install -r requirements-owner.txt -r requirements-hosted.txt -r requirements-dashboard.txt
+      - name: Create least-privilege CI runtime role
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          with psycopg.connect(os.environ['CYBERSENTINEL_TEST_PG_ADMIN_DSN']) as db:
+              db.execute("CREATE ROLE cybersentinel_runtime LOGIN PASSWORD 'ci-ephemeral-runtime' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION")
+              db.execute('GRANT CONNECT ON DATABASE cybersentinel_stage TO cybersentinel_runtime')
+          PY
+      - name: Real PostgreSQL RLS integration tests
+        run: python -m unittest discover -s tests -p test_step16_postgres.py -v
+      - name: Cryptographic OIDC and hosted API tests
+        run: python -m unittest discover -s tests -p test_step16_hosted.py -v
