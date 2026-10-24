@@ -1,4 +1,4 @@
-# CyberSentinel - Roadmap after Step 20 (planning proposal)
+# CyberSentinel - Roadmap after Step 21 (fast-track plan)
 
 ## Current state
 
@@ -37,3 +37,11 @@ third-party review; storage, monitoring and incident response are in place;
 legal/privacy requirements depend on target regions. Do not disable domain
 verification to work around the lack of a domain. Local demonstration remains
 independent of production onboarding.
+
+## Fast-track Steps 22-25 (local MVP)
+
+Steps 22-25 are grouped into one reviewed PR, with triage, installable one-shot
+agent, supplemental robustness fixtures and an in-process release check.
+The one-shot demo agent intentionally does NOT implement a durable offline
+outbox or auto-start daemon; these remain unresolved before real beta.
+This does not bypass Step 26-31+ deployment and production requirements.

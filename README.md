@@ -344,3 +344,22 @@ python -m scripts.step21_quality_gate --output-dir /tmp/cyber-step21-report
 In the isolated localhost Demo (`CYBERSENTINEL_LOCAL_DEMO=1`, port `8019`),
 open `/demo/tuning`. No Auth0, domain, Neon access, or migration is needed.
 See `docs/HUONG_DAN_BUOC_21.md` and `docs/STEP21_QUALITY_LIMITATIONS.md`.
+
+
+## Fast-track Steps 22-25 - Local Portfolio MVP
+
+The localhost-only demo now includes alert triage, aggregate evidence drilldown,
+a `cybersentinel-demo-agent` one-shot client, supplemental synthetic robustness
+checks and a reproducible release smoke test. No DNS, Auth0 or Neon required.
+See `docs/HUONG_DAN_BUOC_22_25.md` and `docs/LOCAL_MVP_RELEASE.md`.
+
+```bash
+python -m pip install -e .
+python -m scripts.step25_preflight
+python -m scripts.step25_release
+python -m scripts.step25_demo
+```
+
+Open `http://127.0.0.1:8019/`. No production security claims: the local
+single-tenant dataset disappears on restart; agent buffering, hosted deployment,
+real-world validation and independent review remain future work.

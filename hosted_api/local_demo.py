@@ -126,7 +126,7 @@ class DemoStore:
                             'title': RULE_TITLES[rule_id], 'severity': severity,
                             'explanation': explanation, 'status': 'open',
                             'observed_count': count, 'threshold_count': threshold,
-                            'window_start': start,
+                            'window_start': start, 'source_ref': source,
                         }
                         updated += 1
                     elif count > previous['observed_count']:
@@ -140,8 +140,24 @@ class DemoStore:
             for alert in self.alerts.values():
                 if alert['id'] == alert_id:
                     alert['status'] = 'acknowledged'
+                    alert['acknowledged_at'] = time.time()
                     return True
             return False
+
+    def triage(self, *, status: str = 'all', severity: str = 'all',
+               rule: str = 'all', query: str = '') -> list[dict]:
+        from hosted_api.demo_triage import select_alerts
+        with self.lock:
+            return select_alerts(list(self.alerts.values()), status=status,
+                                 severity=severity, rule=rule, query=query)
+
+    def alert_evidence(self, alert_id: str) -> dict | None:
+        from hosted_api.demo_triage import evidence
+        with self.lock:
+            for alert in self.alerts.values():
+                if alert['id'] == alert_id:
+                    return evidence(alert, self.events)
+        return None
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -259,6 +275,7 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
                      '(precision, recall, false alarms and misses)</a></p>')
         contents += ('<p><a href="/demo/tuning">Step 21 - offline threshold sensitivity '
                      'and synthetic quality gate</a></p>')
+        contents += '<p><a href="/demo/alerts">Step 22 - triage, filter and inspect alert evidence</a></p>'
         contents += '<h2>Detection alerts</h2>'
         if not data['alerts']:
             contents += '<p>No alerts yet. Send five synthetic login 401 events.</p>'
@@ -348,6 +365,60 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
                     '--output-dir /tmp/cyber-step21-report</code>.</p>')
         content += '<p><a href="/">Back to local dashboard</a></p>'
         return _page('Synthetic threshold sensitivity - Step 21', content)
+
+    @app.get('/demo/alerts')
+    def triage_page(status: str = 'all', severity: str = 'all',
+                    rule: str = 'all', query: str = ''):
+        from hosted_api.demo_triage import ALLOWED_RULES
+        try:
+            rows = db.triage(status=status, severity=severity, rule=rule, query=query)
+        except ValueError as exc:
+            raise HTTPException(422, detail=str(exc)) from exc
+        lines = ['<p class="notice">Synthetic local alerts only. Evidence uses aggregate categories; '
+                 'no raw IP addresses or URLs are retained.</p>',
+                 '<form method="get" action="/demo/alerts">']
+        for name, options, active in (
+            ('status', ('all', 'open', 'acknowledged'), status),
+            ('severity', ('all', 'low', 'medium', 'high'), severity),
+            ('rule', tuple(sorted(ALLOWED_RULES)), rule),
+        ):
+            lines.append('<label>'+_esc(name)+' <select name="'+_esc(name)+'">')
+            for option in options:
+                selected = ' selected' if option == active else ''
+                lines.append('<option value="'+_esc(option)+'"'+selected+'>'+_esc(option)+'</option>')
+            lines.append('</select></label> ')
+        lines.append('<label>Rule search <input name="query" maxlength="64" value="'+_esc(query)+'"></label> ')
+        lines.append('<button type="submit">Filter</button></form>')
+        lines.append('<p>Matching alerts: '+_esc(len(rows))+'</p>')
+        for alert in rows:
+            lines.append('<div class="card"><strong>'+_esc(alert['title'])+'</strong> - '
+                         +_esc(alert['severity'])+' - '+_esc(alert['status'])+' '
+                         +'<a href="/demo/alerts/'+_esc(alert['id'])+'">View evidence</a></div>')
+        lines.append('<p><a href="/">Back to local dashboard</a></p>')
+        return _page('Local alert triage - Step 22', ''.join(lines))
+
+    @app.get('/demo/alerts/{alert_id}')
+    def alert_detail(alert_id: str):
+        if len(alert_id) != 32 or any(ch not in '0123456789abcdef' for ch in alert_id):
+            raise HTTPException(404, detail='Demo alert not found')
+        item = db.alert_evidence(alert_id)
+        if item is None:
+            raise HTTPException(404, detail='Demo alert not found')
+        lines = ['<p><strong>'+_esc(item['rule_id'])+'</strong> - '+_esc(item['status'])+'</p>',
+                 '<p>'+_esc(item['explanation'])+'</p>',
+                 '<p>Observed '+_esc(item['observed_count'])+' / threshold '
+                 +_esc(item['threshold_count'])+'</p>',
+                 '<p>Time window: '+_esc(item['window_start'])+' (60 seconds UTC epoch)</p>',
+                 '<p>Pseudonymous source prefix: '+_esc(item['source_hint'])+'</p>',
+                 '<p>Events in evidence window: '+_esc(item['events_in_window'])+'</p>',
+                 '<h3>HTTP status groups</h3><ul>']
+        for code, n in item['http_status_counts'].items():
+            lines.append('<li>'+_esc(code)+': '+_esc(n)+'</li>')
+        lines.append('</ul><h3>Path categories</h3><ul>')
+        for group, n in item['path_group_counts'].items():
+            lines.append('<li>'+_esc(group)+': '+_esc(n)+'</li>')
+        lines.append('</ul><p><a href="/demo/alerts">Back to triage</a></p>')
+        return _page('Alert evidence - Step 22', ''.join(lines))
 
     @app.post('/demo/key')
     async def key(req: Request):

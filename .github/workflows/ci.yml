@@ -73,6 +73,12 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_step21_tuning.py -v
           python -m scripts.step21_quality_gate
+      - name: Steps 22-25 local portfolio MVP safety and regression
+        run: |
+          python -m unittest discover -s tests -p test_step22_25_fasttrack.py -v
+          python -m scripts.step25_preflight
+          python -m scripts.step24_failure_analysis
+          python -m scripts.step25_release
       - name: Dependency consistency
         run: python -m pip check
 
