@@ -1,0 +1,14 @@
+{
+  "controlled_domain_dns_verified": false,
+  "reviewed_tls_termination": false,
+  "private_owner_portal": false,
+  "public_ingest_hardening": false,
+  "real_multi_tenant_authorization": false,
+  "durable_agent_delivery_and_recovery": false,
+  "real_observability_and_alerts": false,
+  "backup_restore_drill_on_deployment": false,
+  "privacy_legal_approval": false,
+  "external_security_review": false,
+  "authorized_beta_traffic_and_consent": false,
+  "incident_response_and_key_rotation": false
+}
