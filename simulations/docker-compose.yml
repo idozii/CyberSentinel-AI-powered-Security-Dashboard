@@ -1,7 +1,16 @@
 services:
   webapp:
-    image: nginxdemos/hello
+    build:
+      context: ./webapp
     container_name: cs-webapp
+    environment:
+      DEMO_USERNAME: "demo"
+      DEMO_PASSWORD: "demo-only-not-a-real-secret"
+      LAB_HOST: "0.0.0.0"
+      LAB_PORT: "8000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
 
   proxy:
     image: nginx:1.27-alpine
@@ -9,8 +18,7 @@ services:
     depends_on:
       - webapp
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./runtime/logs:/var/log/nginx
-
