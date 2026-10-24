@@ -255,6 +255,8 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
         contents += ('<p>After copying your one-time <code>csd_</code> key, run the sample NGINX '
                      'agent against <code>http://127.0.0.1:8019</code>. See '
                      '<code>docs/HUONG_DAN_BUOC_19.md</code>.</p>')
+        contents += ('<p><a href="/demo/evaluation">Step 20 - evaluate synthetic detection quality '
+                     '(precision, recall, false alarms and misses)</a></p>')
         contents += '<h2>Detection alerts</h2>'
         if not data['alerts']:
             contents += '<p>No alerts yet. Send five synthetic login 401 events.</p>'
@@ -280,6 +282,39 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
     @app.get('/')
     def index(req: Request):
         return dashboard(req)
+
+    @app.get('/demo/evaluation')
+    def evaluation():
+        # Deliberately isolated from app.state.demo and from any live or staging store.
+        # No external traffic, credentials, host data or database access.
+        from hosted_api.demo_evaluation import evaluate
+        result = evaluate()
+        score = result['metrics']
+        fmt = lambda x: 'N/A' if x is None else str(round(x * 100, 2)) + '%'
+        content = ('<p class="notice">Synthetic labeled fixtures only. This is not '
+                   'production detection accuracy or a real-world attack benchmark.</p>')
+        content += ('<div class="grid"><div class="card">Scenario-rule pairs<div class="value">'
+                    + _esc(result['scenario_rule_pairs']) + '</div></div>')
+        for key, label in (('precision', 'Precision'), ('recall', 'Recall'), ('f1', 'F1-score')):
+            content += ('<div class="card">' + label + '<div class="value">'
+                        + _esc(fmt(score[key])) + '</div></div>')
+        content += '</div>'
+        content += ('<p>TP: ' + _esc(score['tp']) + ' / FP: ' + _esc(score['fp'])
+                    + ' / FN: ' + _esc(score['fn']) + ' / TN: ' + _esc(score['tn']) + '</p>')
+        content += '<h2>Known false alarms and missed scenarios</h2>'
+        content += '<table><tr><th>Scenario</th><th>False alarms</th><th>Misses</th></tr>'
+        for row in result['scenarios']:
+            if not row['false_positive_rules'] and not row['false_negative_rules']:
+                continue
+            content += ('<tr><td>' + _esc(row['scenario']) + '</td><td>'
+                        + _esc(', '.join(row['false_positive_rules']) or '-') + '</td><td>'
+                        + _esc(', '.join(row['false_negative_rules']) or '-') + '</td></tr>')
+        content += '</table>'
+        content += ('<p>Full JSON and Markdown exports are generated locally with '
+                    '<code>python -m scripts.step20_evaluate --output-dir /tmp/cs-step20-report</code>. '
+                    'No evaluation data is stored on this server.</p>')
+        content += ('<p><a href="/">Back to local dashboard</a></p>')
+        return _page('Synthetic detection evaluation - Step 20', content)
 
     @app.post('/demo/key')
     async def key(req: Request):

@@ -297,3 +297,31 @@ one-time key and the displayed demo domain ID. Then follow
 [Step 19 instructions](docs/HUONG_DAN_BUOC_19.md) and
 [isolation and limitations](docs/STEP19_DEMO_SECURITY.md).
 All demo data and keys disappear on restart. Never run this service publicly.
+
+
+## Step 20 - Synthetic detection quality evaluation (offline)
+
+Step 20 benchmarks the Step 19 rule engine on **14 deliberately labeled synthetic
+scenarios**: normal below-threshold requests, alert-triggering patterns, two
+plausible benign false alarms and two low-rate missed patterns. The unit of
+measurement is a **scenario-rule pair**, not a real attack or HTTP request.
+The benchmark does not test Isolation Forest ML or production detection.
+
+```bash
+python -m scripts.step20_evaluate
+python -m scripts.step20_evaluate --output-dir /tmp/cybersentinel-step20-report
+python -m unittest discover -s tests -p test_step20_evaluation.py -v
+python -m scripts.step20_preflight
+```
+
+Reports are JSON and Markdown, written with owner-only permissions into a
+brand-new directory **outside the Git repository**. The default sample fixture
+produces TP=4, FP=2, FN=2 and TN=48 (micro precision, recall and F1 = 0.6667);
+these values are illustrative and must never be presented as real-world
+cyberattack accuracy. No demo keys, user traffic, Auth0 tokens or Neon data are
+included. On the opt-in localhost demo `http://127.0.0.1:8019/`, visit
+`/demo/evaluation` for a read-only overview; it does not reset existing demo
+events or keys.
+
+See [Step 20 instructions](docs/HUONG_DAN_BUOC_20.md) and
+[benchmark limitations](docs/STEP20_EVALUATION_LIMITATIONS.md).
