@@ -194,3 +194,16 @@ _Contributions above reflect the project's stated team roles; consult Git histor
 Once a DNS-verified domain has an agent key, submitting sanitized HTTP telemetry to the local API computes per-source 60-second windows and produces advisory alerts for repeated login failures, HTTP 404 bursts, HTTP 5xx bursts and high request volume. Alerts are stored in SQLite under the owner's domain, can be acknowledged, and are refreshed in the local portal every 10 seconds while the browser page remains open. No Isolation Forest weights are loaded for operational decisions.
 
 See [Step 12 guide](docs/HUONG_DAN_BUOC_12.md) and [Detection design](docs/OWNER_DETECTION_DESIGN.md). This is an opt-in localhost demonstration, not hosted threat monitoring or a production intrusion detection service.
+
+## Continuous local log follower (Step 13)
+
+The optional `cybersentinel-agent-watch` command tails a local NGINX JSONL file, persists sanitized events and a file cursor in an owner-only SQLite outbox, and retries HTTP delivery to the localhost Owner API. It handles common rename-based log rotation and basic copytruncate detection.
+
+```bash
+python -m pip install -e .
+cybersentinel-agent-watch --input simulations/runtime/logs/access.log \
+  --state simulations/runtime/owner/nginx_watcher.sqlite3 \
+  --domain-id YOUR_VERIFIED_DOMAIN_ID --poll-seconds 1
+```
+
+Set `CYBERSENTINEL_AGENT_KEY` locally first. The default on a new state file is to start at the end of the existing log. Use `--from-start` only for a new, fresh demonstration log. The backend still accepts only events within five minutes, so old queue items require operator attention. This is not hosted 24/7 monitoring. See [Step 13 instructions](docs/HUONG_DAN_BUOC_13.md) and [Reliability design](docs/AGENT_RELIABILITY.md).
