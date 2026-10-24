@@ -1,0 +1,4 @@
+# Streamlit Community Cloud reads this file beside dashboard/public_app.py.
+# Only the two public showcase dependencies are installed; no ML model runtime.
+streamlit>=1.42,<2
+pandas>=2.2,<3
