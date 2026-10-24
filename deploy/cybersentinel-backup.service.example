@@ -1,0 +1,19 @@
+# One-shot, consistent SQLite backup. Backups contain sensitive owner data.
+# Secure /var/lib/cybersentinel/backups with owner-only mode 0700.
+[Unit]
+Description=CyberSentinel private owner SQLite online backup
+After=cybersentinel-owner.service
+
+[Service]
+Type=oneshot
+User=cybersentinel
+Group=cybersentinel
+WorkingDirectory=/opt/cybersentinel/app
+Environment=CYBERSENTINEL_OWNER_DB=/var/lib/cybersentinel/owner.sqlite3
+ExecStart=/opt/cybersentinel/venv/bin/python -m scripts.step15_ops backup --backup-dir /var/lib/cybersentinel/backups
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cybersentinel
+UMask=0077

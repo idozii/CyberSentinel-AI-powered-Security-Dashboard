@@ -1,0 +1,11 @@
+[Unit]
+Description=Run CyberSentinel owner data retention daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30m
+Unit=cybersentinel-retention.service
+
+[Install]
+WantedBy=timers.target

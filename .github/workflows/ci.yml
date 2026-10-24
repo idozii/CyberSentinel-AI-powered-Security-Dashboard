@@ -45,6 +45,8 @@ jobs:
         run: python -m scripts.release_audit
       - name: Step 14 staging preflight
         run: python -m scripts.step14_preflight
+      - name: Step 15 operator staging preflight
+        run: python -m scripts.step15_preflight
       - name: Text style check (em/en dashes)
         run: python -m scripts.normalize_dashes --check
       - name: Dependency consistency

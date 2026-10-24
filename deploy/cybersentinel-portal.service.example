@@ -1,0 +1,23 @@
+# Private owner portal for operator staging. NEVER bind it to 0.0.0.0.
+# Access remotely only through an authenticated SSH tunnel.
+[Unit]
+Description=CyberSentinel private Owner Portal staging
+After=network-online.target cybersentinel-owner.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cybersentinel
+Group=cybersentinel
+WorkingDirectory=/opt/cybersentinel/app
+ExecStart=/opt/cybersentinel/venv/bin/streamlit run /opt/cybersentinel/app/owner_portal/app.py --server.address 127.0.0.1 --server.port 8503 --server.headless true --server.enableCORS true --server.enableXsrfProtection true
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

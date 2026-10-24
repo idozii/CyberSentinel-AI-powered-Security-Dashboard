@@ -1,0 +1,12 @@
+# Daily local backup only. Encrypt before any off-host storage.
+[Unit]
+Description=Run CyberSentinel SQLite online backup daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=20m
+Unit=cybersentinel-backup.service
+
+[Install]
+WantedBy=timers.target
