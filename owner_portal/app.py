@@ -197,6 +197,12 @@ else:
                     st.code(issued_key["agent_key"], language="text")
                     st.code("export CYBERSENTINEL_AGENT_KEY='<paste-agent-key-here>'", language="bash")
                     st.code(f"python -m cybersentinel_agent.cli --input simulations/runtime/logs/access.log --domain-id {item['id']}", language="bash")
+                    st.caption("Step 13 optional: run a continuous localhost log follower with a durable outbox.")
+                    st.code(
+                        "cybersentinel-agent-watch --input simulations/runtime/logs/access.log "
+                        "--state simulations/runtime/owner/nginx_watcher.sqlite3 "
+                        f"--domain-id {item['id']} --poll-seconds 1", language="bash"
+                    )
                     if st.button("Hide generated agent key", key="hide-key-" + item["id"]):
                         st.session_state.pop("issued_agent_key", None)
                         st.rerun()
