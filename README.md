@@ -1,109 +1,169 @@
-# Cyber Sentinel - AI-powered-Security-Dashboard
+# CyberSentinel — AI-Assisted Security Telemetry Lab
 
-## Goals
+**Reproducible, localhost-only security telemetry experiments with NGINX, Python, Isolation Forest, FastAPI, and Streamlit.**
 
-Build an AI-assisted security monitoring stack that can observe a containerized webapp, persist traffic telemetry for later training, and evolve into anomaly detection and dashboarding.
+> **Research/educational prototype — not a production intrusion detection system (IDS).** The dashboard explores *offline, controlled lab experiments*. The API does not perform live detection; the reported labels describe scripted simulations, not independently verified incidents.
 
-## What Is Implemented
+## What works today
 
-This repository now includes a first working data-collection pipeline for a single Docker host:
+- **Local traffic generator:** bounded benign visits, failed logins, URL scans, and mixed scenarios against a Docker lab bound to `127.0.0.1`.
+- **Telemetry pipeline:** NGINX JSON access logs → Python collector → JSONL/CSV ETL → request-ID-linked simulation labels. Unmatched events stay **unlabeled**.
+- **Behavioral features:** 14 numeric aggregates in 60-second, per-source, per-simulation-run windows for offline analysis.
+- **ML experiment:** Isolation Forest fitted on benign training windows, threshold calibrated on benign validation windows, compared with a fixed-rule baseline on run-separated holdout data.
+- **Reproducibility and robustness:** saved split manifest and metrics, counterfactual feature-space checks, Python 3.12/3.13 tests, and a Docker end-to-end smoke test in CI.
+- **Offline dashboard:** read-only FastAPI endpoints and a four-page Streamlit explorer (Overview, Traffic Explorer, Model Evaluation, Robustness).
 
-- `scripts/collector.py`: tails structured proxy access logs, normalizes each request into a canonical `TrafficEvent`, and writes rotated JSONL files
-- `scripts/etl.py`: validates raw JSONL, flattens events, and exports training-friendly CSV or normalized JSONL
-- `scripts/train_model.py`: provides a baseline dataset profiler for quick inspection before model work
-- `simulations/docker-compose.yml`: example stack with `nginx`, a sample `webapp`, and mounted output directories
-- `simulations/nginx/default.conf`: sample reverse proxy config that emits parseable security telemetry
-- `tests/`: unit tests for parsing, rotation, and ETL
+## Example laboratory results (24 October 2026)
 
-## Canonical Event Schema
+| Experiment property | Recorded value |
+|---|---:|
+| Independent simulated runs | 160 (40 per scenario) |
+| Requests with simulation labels | 2,678 of 2,678 simulated requests |
+| Missing manifest-to-event matches | 0 |
+| Window-level records | 160 |
+| Numeric ML features | 14 |
+| Benign windows used to fit Isolation Forest | 24 |
+| Holdout test windows | 32 (8 benign + 24 attacks) |
+| Isolation Forest precision / recall / F1 (test) | 1.000 / 0.2917 / 0.4516 |
+| Isolation Forest average precision (test) | 0.8839 |
+| Rule-based baseline precision / recall / F1 (test) | 1.000 / 1.000 / 1.000 |
+| Isolation Forest scanning recall (test) | **0 / 8** |
 
-Each JSONL record includes:
+**Interpret carefully.** These are results supplied from one controlled local run, not metrics for real-world threats. Fixed templates, simplified benign traffic, and the attack-heavy test class balance make cross-dataset generalization unproven. In particular, the Isolation Forest missed **17 of 24** test attack windows. The stronger rule-based result is an *easy synthetic-lab baseline*, not evidence of production reliability. See [Experiment Results](docs/EXPERIMENT_RESULTS.md).
 
-- `schema_version`
-- `captured_at`
-- `service`
-- `container_id`
-- `source_ip`
-- `http_method`
-- `host`
-- `path`
-- `query_present`
-- `status_code`
-- `request_bytes`
-- `response_bytes`
-- `duration_ms`
-- `user_agent`
-- `referer`
-- `forwarded_for`
-- `request_id`
-- `raw`
+## Architecture
 
-## Quick Start
-
-Start the sample stack:
-
-```powershell
-docker compose -f simulations/docker-compose.yml up --build
+```mermaid
+flowchart TD
+    G[Bounded localhost simulator] --> N[NGINX reverse proxy]
+    N --> W[Demo webapp]
+    N --> L[JSON access logs]
+    G --> M[Trusted request-ID label manifest]
+    L --> C[Collector / JSONL]
+    C --> E[ETL / events.csv]
+    E --> J[Join labels by request_id]
+    M --> J
+    J --> F[60-second window features]
+    F --> T[Run-separated train / validation / test]
+    T --> I[Isolation Forest and fixed rules]
+    I --> A[Saved metrics and predictions]
+    A --> API[Read-only FastAPI]
+    F --> API
+    API --> UI[Local Streamlit dashboard]
 ```
 
-Run the collector against the mounted NGINX log file:
+Details: [Architecture](docs/PROJECT_ARCHITECTURE.md) · [Security and limitations](docs/SECURITY_AND_LIMITATIONS.md).
 
-```powershell
-python scripts/collector.py `
-  --input simulations/runtime/logs/access.log `
-  --output-dir simulations/runtime/raw `
-  --target-service webapp `
-  --follow
+## Requirements
+
+- Python **3.12 or 3.13** and `venv`
+- Docker + Docker Compose to generate new local telemetry (not needed to view saved results)
+- Git, and access to `127.0.0.1` ports **8080** (lab), **8001** (API), **8501** (dashboard)
+- Dependencies in `requirements-ml.txt` and `requirements-dashboard.txt`
+
+## Quick start — inspect existing local results
+
+Run from the repository root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-ml.txt -r requirements-dashboard.txt
+python -m unittest discover -s tests -v
 ```
 
-Generate safe attack-like traffic against the sample proxy:
+**Terminal A:**
 
-```powershell
-python scripts/attack_replay.py `
-  --base-url http://127.0.0.1:8080 `
-  --scenario mixed `
-  --attempts 15 `
-  --concurrency 5
+```bash
+source .venv/bin/activate
+uvicorn dashboard_api.main:app --host 127.0.0.1 --port 8001
 ```
 
-Convert collected JSONL into flat training rows:
+**Terminal B:**
 
-```powershell
-python scripts/etl.py `
-  --input-dir simulations/runtime/raw `
-  --output simulations/runtime/processed/events.csv `
-  --format csv
+```bash
+source .venv/bin/activate
+streamlit run dashboard/app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
-Inspect the resulting dataset:
+Open **http://127.0.0.1:8501**, and optionally the API documentation at **http://127.0.0.1:8001/docs**. Verify the backend via:
 
-```powershell
-python scripts/train_model.py --input simulations/runtime/processed/events.csv
+```bash
+curl --noproxy '*' http://127.0.0.1:8001/api/health
+curl --noproxy '*' http://127.0.0.1:8001/api/runs
 ```
 
-Run tests:
+A fresh checkout normally has **no experiment data**: generated files under `simulations/runtime/` are intentionally ignored by Git. The app will report that no runs exist until you generate them. Do not expect screenshots or metrics files to be downloaded by cloning this repository.
 
-```powershell
-python -m unittest discover -s tests
+## Reproduce a new local ML experiment
+
+**Only run this simulation against the provided localhost lab.** In the repository root, with the virtual environment active:
+
+```bash
+docker compose -f simulations/docker-compose.yml up --build -d --wait
+curl --noproxy '*' http://127.0.0.1:8080/health
+python -m scripts.run_lab_experiments --runs-per-class 40 --seed 42
+
+RUN_DIR=$(find simulations/runtime/processed -maxdepth 1 -type d -name 'step5_*' | sort | tail -n 1)
+cat "$RUN_DIR/data_summary.json"
+
+python -m scripts.train_detector \
+  --input "$RUN_DIR/window_features.csv" \
+  --output-dir "$RUN_DIR/ml_results" \
+  --seed 42 --target-fpr 0.05 --trees 200
+cat "$RUN_DIR/ml_results/metrics.json"
+
+python -m scripts.audit_detector_robustness \
+  --input "$RUN_DIR/window_features.csv" \
+  --ml-results "$RUN_DIR/ml_results" \
+  --output "$RUN_DIR/ml_results/robustness_report.json"
+
+docker compose -f simulations/docker-compose.yml down
 ```
 
-## Tech Stack
+**Check before trusting results:** `matched_labeled_events == simulation_requests`, `manifest_records_without_event == 0`, and no run ID appears in multiple train/validation/test partitions. Results may vary with timing and library versions. The split manifest and `metrics.json` capture the actual experiment details. See [Reproducibility](docs/REPRODUCIBILITY.md).
 
-- Collector and ETL: Python standard library
-- Proxy: NGINX
-- Container runtime: Docker / Docker Compose
-- Future model targets: Isolation Forest / Autoencoder
-- Future platform targets: FastAPI backend, React frontend, PostgreSQL, Elasticsearch
+## Quality checks
 
-## Datasets
+```bash
+python -m unittest discover -s tests -v
+python -m scripts.release_audit
+```
 
-- UNSW-NB15: [UNSW-NB15 Dataset](https://research.unsw.edu.au/projects/unsw-nb15-dataset)
-- NSL-KDD: [Kaggle NSL-KDD Dataset](https://www.kaggle.com/datasets/primus11/nsl-kdd-dataset-filtered-version-of-kdd)
-- Honeypot logs: [Kaggle Honeypot-attack-logs](https://www.kaggle.com/datasets/lougarou/honeypot-attack-logs?utm_source=chatgpt.com)
+The release audit checks repository layout and looks for accidentally tracked runtime datasets, serialized models and credential-like filenames. It is a **limited packaging check**, not a malware scanner or security certification. GitHub Actions also runs Python tests and the Docker localhost pipeline for pull requests.
+
+## Repo map
+
+| Path | Role |
+|---|---|
+| `simulations/` | Local NGINX + demo webapp; generated logs excluded from Git |
+| `scripts/collector.py`, `scripts/etl.py` | Ingest and normalize HTTP events |
+| `scripts/attack_replay.py`, `scripts/run_lab_experiments.py` | Controlled loopback-only replay and repeated lab sessions |
+| `scripts/build_labeled_dataset.py`, `scripts/build_window_features.py` | Trusted labeling and numeric aggregation |
+| `scripts/train_detector.py`, `scripts/audit_detector_robustness.py` | Baseline model evaluation and frozen-model audit |
+| `dashboard_api/`, `dashboard/` | Local read-only API and Streamlit application |
+| `.github/workflows/ci.yml`, `tests/` | Continuous integration and regression tests |
+| `docs/` | Architecture, reproducibility, methodology and limitations |
+
+## Limitations and next research steps
+
+1. Source-IP attribution is not trustworthy: `X-Forwarded-For` can be supplied by the client in this lab.
+2. Per-run aggregation is valid for experiment bookkeeping, **not** for a deployed live detector, which cannot know simulation run IDs.
+3. The fixed scan paths and simple benign request patterns may overstate generalization. A stronger future study needs authentic benign errors, more varied attack behavior and an independent dataset.
+4. Validation includes only eight benign windows in the recorded study; a target 5% false-positive rate is therefore coarsely estimated.
+5. No authentication, RBAC, public ingress, production event streaming or real-time alerting is implemented. Keep the dashboard/API bound to loopback.
+
+**This project demonstrates a reproducible experimental workflow, not a security product.**
+
+## Documentation
+
+[Experiment results](docs/EXPERIMENT_RESULTS.md) · [Architecture](docs/PROJECT_ARCHITECTURE.md) · [Reproducibility](docs/REPRODUCIBILITY.md) · [Security & limitations](docs/SECURITY_AND_LIMITATIONS.md) · [Demo checklist](docs/PORTFOLIO_DEMO.md)
 
 ## Contributors
 
-- [idozii](https://github.com/idozii) - Data Scientist
-- [Vincent](https://github.com/nguyentr4n14) - Software Dev
-- [Dcornel](https://github.com/cornel05) - ML Engineer
-- [DarealDanh](https://github.com/darealDanh) - Hacker
+- [idozii](https://github.com/idozii) — Data Science
+- [Vincent](https://github.com/nguyentr4n14) — Software Development
+- [Dcornel](https://github.com/cornel05) — ML Engineering
+- [DarealDanh](https://github.com/darealDanh) — Lab Attack Simulation
+
+_Contributions above reflect the project's stated team roles; consult Git history for specific authorship._
