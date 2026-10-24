@@ -1,3 +1,4 @@
+# CyberSentinel local simulation
 services:
   webapp:
     build:
@@ -11,14 +12,26 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).close()"
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 3s
 
   proxy:
     image: nginx:1.27-alpine
     container_name: cs-proxy
     depends_on:
-      - webapp
+      webapp:
+        condition: service_healthy
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./runtime/logs:/var/log/nginx
+
