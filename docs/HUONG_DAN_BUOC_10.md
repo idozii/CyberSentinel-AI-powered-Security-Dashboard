@@ -1,4 +1,4 @@
-# CyberSentinel — Bước 10: Owner Accounts & DNS TXT Domain Verification
+# CyberSentinel - Bước 10: Owner Accounts & DNS TXT Domain Verification
 
 ## 1. Kết quả và giới hạn
 
@@ -45,14 +45,14 @@ Trên repository đầy đủ sau Bước 9 kỳ vọng **115 tests** (= 93 cũ 
 
 ## 4. Khởi động API và portal
 
-**Terminal 1** — Owner API:
+**Terminal 1** - Owner API:
 
 ```bash
 source .venv/bin/activate
 uvicorn owner_api.main:app --host 127.0.0.1 --port 8002
 ```
 
-**Terminal 2** — Portal:
+**Terminal 2** - Portal:
 
 ```bash
 source .venv/bin/activate
@@ -89,7 +89,7 @@ Quản lý TXT proof theo cơ chế riêng của CyberSentinel, **không phải 
 
 ## 6. Chính sách dữ liệu local
 
-SQLite mặc định ở `simulations/runtime/owner/owner_local.sqlite3` (không commit). Database chứa email và password hashes, hashed session tokens, DNS challenge hashes, verified-domain relations. POSIX file permission: directory 700, database 600. Không đưa vào ZIP, repo, screenshot công khai hoặc cộng tác với dữ liệu thật. Nếu xoá DB sẽ mất toàn bộ các tài khoản và claims local, không ảnh hưởng các lab artifacts Steps 1–9.
+SQLite mặc định ở `simulations/runtime/owner/owner_local.sqlite3` (không commit). Database chứa email và password hashes, hashed session tokens, DNS challenge hashes, verified-domain relations. POSIX file permission: directory 700, database 600. Không đưa vào ZIP, repo, screenshot công khai hoặc cộng tác với dữ liệu thật. Nếu xoá DB sẽ mất toàn bộ các tài khoản và claims local, không ảnh hưởng các lab artifacts Steps 1-9.
 
 Kiểm tra Git không chứa dữ liệu tài khoản:
 

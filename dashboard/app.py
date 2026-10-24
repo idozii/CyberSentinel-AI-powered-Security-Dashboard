@@ -61,7 +61,7 @@ with st.sidebar:
     st.markdown("### 🛡️ CyberSentinel")
     st.caption("Security telemetry / research lab")
     st.markdown("---")
-    st.info("OFFLINE SIMULATION ONLY — no live monitoring or production detection.")
+    st.info("OFFLINE SIMULATION ONLY - no live monitoring or production detection.")
     if st.button("↻ Refresh local results", use_container_width=True):
         load_api.clear()
         st.rerun()

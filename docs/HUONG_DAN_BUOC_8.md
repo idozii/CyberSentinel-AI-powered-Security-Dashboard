@@ -1,12 +1,12 @@
-# CyberSentinel — Bước 8: Portfolio, Documentation & Final Release Audit
+# CyberSentinel - Bước 8: Portfolio, Documentation & Final Release Audit
 
-> **Phạm vi:** khôi phục tài liệu đã bị mất trên `main`, cập nhật README phản ánh code thực tế, ghi lại ML metrics đã đo và thêm release audit chỉ đọc. Không thay đổi mô hình, threshold, API hoặc dữ liệu Bước 5–7. Bước 8 không biến prototype thành IDS production.
+> **Phạm vi:** khôi phục tài liệu đã bị mất trên `main`, cập nhật README phản ánh code thực tế, ghi lại ML metrics đã đo và thêm release audit chỉ đọc. Không thay đổi mô hình, threshold, API hoặc dữ liệu Bước 5-7. Bước 8 không biến prototype thành IDS production.
 
 ## 8.0 Kiểm tra Bước 7
 
 PR #8 (`feat/local-security-dashboard`) đã merge vào `main` trên GitHub. Cả ba CI jobs trên PR #8 (Python 3.12, Python 3.13, Docker smoke) đã PASS. Sau merge, repository chứa `dashboard/`, `dashboard_api/`, `tests/test_step7_dashboard_api.py`, `requirements-dashboard.txt` và `.github/workflows/ci.yml`.
 
-**Lưu ý:** hiện tại `main` không có thư mục `docs/` (các tài liệu Bước 4–7 đã bị xóa trong quá trình commit trước). ZIP Bước 8 khôi phục đúng bốn tài liệu đó.
+**Lưu ý:** hiện tại `main` không có thư mục `docs/` (các tài liệu Bước 4-7 đã bị xóa trong quá trình commit trước). ZIP Bước 8 khôi phục đúng bốn tài liệu đó.
 
 ## 8.1 Đảm bảo đang ở repository root và working tree sạch
 

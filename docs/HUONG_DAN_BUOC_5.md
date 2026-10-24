@@ -1,4 +1,4 @@
-# CyberSentinel — Bước 5: Dataset mở rộng + ML baseline
+# CyberSentinel - Bước 5: Dataset mở rộng + ML baseline
 
 ## Phạm vi
 

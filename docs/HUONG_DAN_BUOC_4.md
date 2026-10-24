@@ -1,4 +1,4 @@
-# CyberSentinel — Step 4: Window-Based Feature Engineering
+# CyberSentinel - Step 4: Window-Based Feature Engineering
 
 ## What this implements
 

@@ -110,10 +110,10 @@ if page == "Website Checker":
 elif page == "Owner Monitoring (Roadmap)":
     st.subheader("CyberSentinel for website owners")
     st.info("LIVE OWNER MONITORING IS NOT AVAILABLE YET. This page describes the next implementation phases.")
-    st.markdown("**1. Verify ownership** — sign in and prove domain control with DNS TXT or a restricted HTTPS challenge.")
-    st.markdown("**2. Install an agent** — consent-based log or OpenTelemetry integration; no bodies or credentials collected.")
-    st.markdown("**3. Review live alerts** — per-tenant ingestion, bounded time windows, rules, anomaly scores and retention controls.")
-    st.markdown("**4. Manage privacy** — revoke agent credentials, delete events and configure alert destinations.")
+    st.markdown("**1. Verify ownership** - sign in and prove domain control with DNS TXT or a restricted HTTPS challenge.")
+    st.markdown("**2. Install an agent** - consent-based log or OpenTelemetry integration; no bodies or credentials collected.")
+    st.markdown("**3. Review live alerts** - per-tenant ingestion, bounded time windows, rules, anomaly scores and retention controls.")
+    st.markdown("**4. Manage privacy** - revoke agent credentials, delete events and configure alert destinations.")
     st.warning("The current Isolation Forest prototype missed 17/24 simulated attack windows in its holdout. It must not be used to make automatic security decisions for customer websites.")
 
 elif page == "Overview":
@@ -139,7 +139,7 @@ elif page == "Overview":
         st.write(f"**{split['validation_windows']} / {split['test_windows']}** validation / holdout windows")
         st.caption("The 160 windows are grouped by simulation run for evaluation, not live deployment.")
     st.subheader("Research takeaway")
-    st.warning("At the selected threshold, Isolation Forest missed 17 of 24 simulated attack windows on the test set, including all 8 path-scanning windows. This is an experimental limitation—not a production security result.")
+    st.warning("At the selected threshold, Isolation Forest missed 17 of 24 simulated attack windows on the test set, including all 8 path-scanning windows. This is an experimental limitation-not a production security result.")
 
 elif page == "Traffic & Features":
     st.subheader("Simulation coverage")
@@ -224,7 +224,7 @@ else:
     st.warning("Not hosted: local access logs, raw traffic events, individual request IDs/IPs, the model .joblib, credentials, the Docker lab, or the localhost API.")
     st.subheader("Research and deployment limitations")
     for limitation in [
-        "This is static evidence from a controlled simulation—not live monitoring or incident alerting.",
+        "This is static evidence from a controlled simulation-not live monitoring or incident alerting.",
         "Repeated attack templates and simplified benign behavior restrict external validity.",
         "Per-run windows cannot be reused as a live inference grouping policy without redesign.",
         "The original test set contained 75% attack windows, unlike many operational environments.",

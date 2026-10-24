@@ -31,7 +31,7 @@ def call(method: str, path: str, body: dict | None = None, authenticated: bool =
         raise RuntimeError("Cannot connect to the local Owner API on port 8002") from exc
 
 
-st.title("🛡️ CyberSentinel — Owner Onboarding")
+st.title("🛡️ CyberSentinel - Owner Onboarding")
 st.caption("LOCAL DEVELOPMENT ONLY · Owner accounts and DNS TXT verification · No live monitoring or alerts yet")
 st.info("This portal is intentionally separate from the public Streamlit demo. Do not deploy it on Streamlit Community Cloud.")
 try:
@@ -50,7 +50,7 @@ if not st.session_state.get("owner_token"):
         st.subheader("Create local account")
         with st.form("register"):
             reg_email = st.text_input("Email", key="reg_email")
-            reg_password = st.text_input("Password (12–128 characters)", type="password", key="reg_password")
+            reg_password = st.text_input("Password (12-128 characters)", type="password", key="reg_password")
             reg_submit = st.form_submit_button("Register")
         if reg_submit:
             try:
@@ -120,7 +120,7 @@ if not owned:
 else:
     for item in owned:
         with st.container(border=True):
-            st.write(f"**{item['domain']}** — {'✅ Verified' if item['verified'] else '⏳ Pending DNS proof'}")
+            st.write(f"**{item['domain']}** - {'✅ Verified' if item['verified'] else '⏳ Pending DNS proof'}")
             if not item["verified"]:
                 a, b, c = st.columns(3)
                 if a.button("Verify DNS", key="verify-" + item["id"]):
@@ -144,7 +144,46 @@ else:
                     except RuntimeError as exc:
                         st.error(str(exc))
             else:
-                st.caption("Owner telemetry ingestion is not available yet. Step 11 will add agents and API keys.")
+                st.markdown("#### Local telemetry agent")
+                st.caption("Step 11 uses owner-scoped API keys and local-only ingestion. It is not hosted 24/7.")
+                try:
+                    active_keys = call("GET", f"/owner/domains/{item['id']}/agent-keys")["keys"]
+                    history = call("GET", f"/owner/domains/{item['id']}/telemetry")
+                except RuntimeError as exc:
+                    st.error(str(exc))
+                    active_keys = []
+                    history = {"events": [], "total_events": 0}
+                with st.form("key-" + item["id"]):
+                    key_label = st.text_input("Agent label", value="local-nginx", key="label-" + item["id"])
+                    issued = st.form_submit_button("Generate agent API key")
+                if issued:
+                    try:
+                        st.session_state["issued_agent_key"] = call("POST", f"/owner/domains/{item['id']}/agent-keys", {"label": key_label})
+                        st.rerun()
+                    except RuntimeError as exc:
+                        st.error(str(exc))
+                issued_key = st.session_state.get("issued_agent_key")
+                if issued_key and issued_key["domain_id"] == item["id"]:
+                    st.warning("Copy this agent key now. It will not be displayed by the API again. Do not share screenshots containing it.")
+                    st.code(issued_key["agent_key"], language="text")
+                    st.code("export CYBERSENTINEL_AGENT_KEY='<paste-agent-key-here>'", language="bash")
+                    st.code(f"python -m cybersentinel_agent.cli --input simulations/runtime/logs/access.log --domain-id {item['id']}", language="bash")
+                    if st.button("Hide generated agent key", key="hide-key-" + item["id"]):
+                        st.session_state.pop("issued_agent_key", None)
+                        st.rerun()
+                for agent_key in active_keys:
+                    a, b = st.columns([4, 1])
+                    a.write(f"Agent: `{agent_key['label']}`")
+                    if b.button("Revoke", key="revoke-key-" + agent_key["id"]):
+                        try:
+                            call("DELETE", f"/owner/domains/{item['id']}/agent-keys/{agent_key['id']}")
+                            st.rerun()
+                        except RuntimeError as exc:
+                            st.error(str(exc))
+                st.metric("Received telemetry events", history["total_events"])
+                if history["events"]:
+                    st.dataframe(history["events"], hide_index=True, use_container_width=True)
+                    st.caption("Pseudonymous per-day source references, no raw IPs or request URLs.")
                 if st.button("Revoke claim", key="revoke-" + item["id"]):
                     try:
                         call("DELETE", f"/owner/domains/{item['id']}")
@@ -153,4 +192,4 @@ else:
                         st.error(str(exc))
 
 st.divider()
-st.caption("DNS TXT control proof is not a guarantee of legal ownership. No source logs, agents, alerts or detection models are connected here.")
+st.caption("Local agent ingestion does not provide production-grade monitoring or live attack detection. Domain DNS proof is not a guarantee of legal ownership.")

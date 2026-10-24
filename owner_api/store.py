@@ -119,7 +119,7 @@ class OwnerStore:
     def register(self, email: str, password: str) -> dict:
         address = normalize_email(email)
         if len(password) < 12 or len(password) > 128 or len(password.encode("utf-8")) > 512 or not password.strip():
-            raise OwnerError("Password must contain 12–128 characters", 422)
+            raise OwnerError("Password must contain 12-128 characters", 422)
         hashed = PASSWORD_HASHER.hash(password)
         uid = uuid.uuid4().hex
         with self._db(write=True) as conn:

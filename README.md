@@ -1,8 +1,8 @@
-# CyberSentinel — AI-Assisted Security Telemetry Lab
+# CyberSentinel - AI-Assisted Security Telemetry Lab
 
 **Reproducible, localhost-only security telemetry experiments with NGINX, Python, Isolation Forest, FastAPI, and Streamlit.**
 
-> **Research/educational prototype — not a production intrusion detection system (IDS).** The dashboard explores *offline, controlled lab experiments*. The API does not perform live detection; the reported labels describe scripted simulations, not independently verified incidents.
+> **Research/educational prototype - not a production intrusion detection system (IDS).** The dashboard explores *offline, controlled lab experiments*. The API does not perform live detection; the reported labels describe scripted simulations, not independently verified incidents.
 
 ## What works today
 
@@ -12,6 +12,8 @@
 - **ML experiment:** Isolation Forest fitted on benign training windows, threshold calibrated on benign validation windows, compared with a fixed-rule baseline on run-separated holdout data.
 - **Reproducibility and robustness:** saved split manifest and metrics, counterfactual feature-space checks, Python 3.12/3.13 tests, and a Docker end-to-end smoke test in CI.
 - **Offline dashboard:** read-only FastAPI endpoints and a four-page Streamlit explorer (Overview, Traffic Explorer, Model Evaluation, Robustness).
+- **Public security checker:** HTTPS configuration checks without intrusive scanning; separate static research showcase.
+- **Local owner onboarding and agent ingestion:** DNS TXT domain proof, scoped/revocable agent keys, NGINX JSONL adapter, minimized request metadata and owner-only event history. All Step 11 services remain localhost-only, not hosted online.
 
 ## Example laboratory results (24 October 2026)
 
@@ -58,10 +60,10 @@ Details: [Architecture](docs/PROJECT_ARCHITECTURE.md) · [Security and limitatio
 
 - Python **3.12 or 3.13** and `venv`
 - Docker + Docker Compose to generate new local telemetry (not needed to view saved results)
-- Git, and access to `127.0.0.1` ports **8080** (lab), **8001** (API), **8501** (dashboard)
-- Dependencies in `requirements-ml.txt` and `requirements-dashboard.txt`
+- Git, and access to `127.0.0.1` ports **8080** (lab), **8001** (API), **8501** (dashboard), **8002** (local owner API), **8503** (local owner portal)
+- Dependencies in `requirements-ml.txt`, `requirements-dashboard.txt`, `requirements-owner.txt`, and the optional local agent `pyproject.toml`
 
-## Quick start — inspect existing local results
+## Quick start - inspect existing local results
 
 Run from the repository root:
 
@@ -141,7 +143,10 @@ The release audit checks repository layout and looks for accidentally tracked ru
 | `scripts/attack_replay.py`, `scripts/run_lab_experiments.py` | Controlled loopback-only replay and repeated lab sessions |
 | `scripts/build_labeled_dataset.py`, `scripts/build_window_features.py` | Trusted labeling and numeric aggregation |
 | `scripts/train_detector.py`, `scripts/audit_detector_robustness.py` | Baseline model evaluation and frozen-model audit |
-| `dashboard_api/`, `dashboard/` | Local read-only API and Streamlit application |
+| `dashboard_api/`, `dashboard/` | Local read-only API, public checker and Streamlit applications |
+| `owner_api/`, `owner_portal/` | Local-only domain verification, key management, owner telemetry view |
+| `cybersentinel_agent/`, `pyproject.toml` | Local-only NGINX JSONL adapter, installable CLI package |
+| `scripts/normalize_dashes.py` | Convert em/en dashes to ASCII hyphens in Git-tracked text |
 | `.github/workflows/ci.yml`, `tests/` | Continuous integration and regression tests |
 | `docs/` | Architecture, reproducibility, methodology and limitations |
 
@@ -151,9 +156,24 @@ The release audit checks repository layout and looks for accidentally tracked ru
 2. Per-run aggregation is valid for experiment bookkeeping, **not** for a deployed live detector, which cannot know simulation run IDs.
 3. The fixed scan paths and simple benign request patterns may overstate generalization. A stronger future study needs authentic benign errors, more varied attack behavior and an independent dataset.
 4. Validation includes only eight benign windows in the recorded study; a target 5% false-positive rate is therefore coarsely estimated.
-5. No authentication, RBAC, public ingress, production event streaming or real-time alerting is implemented. Keep the dashboard/API bound to loopback.
+5. A local-only owner account prototype and scoped telemetry ingestion exist, but there is no managed hosted authentication, production RBAC, public ingress, continuous agent daemon or real-time alerting. Keep owner services bound to loopback.
 
 **This project demonstrates a reproducible experimental workflow, not a security product.**
+
+## Local owner agent (Step 11)
+
+The optional owner service is **not hosted online**. With a DNS-verified domain in the local owner portal, create a one-time agent key, then use the installable CLI to deliver up to 25 fresh sanitized NGINX events per request:
+
+```bash
+python -m pip install -r requirements-owner.txt -r requirements-dashboard.txt
+python -m pip install -e .
+uvicorn owner_api.main:app --host 127.0.0.1 --port 8002
+# In another terminal, with CYBERSENTINEL_AGENT_KEY set:
+cybersentinel-agent --input simulations/runtime/owner/step11_demo_nginx.jsonl \
+  --domain-id YOUR_VERIFIED_DOMAIN_ID
+```
+
+See [Step 11 setup](docs/HUONG_DAN_BUOC_11.md) and [Owner agent security](docs/OWNER_AGENT_SECURITY.md) before using any logs. No raw IP, full URL, query, cookie, user-agent or request body is uploaded; the source reference is a daily HMAC pseudonym.
 
 ## Documentation
 
@@ -161,9 +181,9 @@ The release audit checks repository layout and looks for accidentally tracked ru
 
 ## Contributors
 
-- [idozii](https://github.com/idozii) — Data Science
-- [Vincent](https://github.com/nguyentr4n14) — Software Development
-- [Dcornel](https://github.com/cornel05) — ML Engineering
-- [DarealDanh](https://github.com/darealDanh) — Lab Attack Simulation
+- [idozii](https://github.com/idozii) - Data Science
+- [Vincent](https://github.com/nguyentr4n14) - Software Development
+- [Dcornel](https://github.com/cornel05) - ML Engineering
+- [DarealDanh](https://github.com/darealDanh) - Lab Attack Simulation
 
 _Contributions above reflect the project's stated team roles; consult Git history for specific authorship._

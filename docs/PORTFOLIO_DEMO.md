@@ -1,6 +1,6 @@
 # Portfolio Demo and Project Presentation Checklist
 
-## Recommended 3–5 minute demo
+## Recommended 3-5 minute demo
 
 1. **Problem (30 sec).** Explain why individual HTTP requests may be uninformative and why 60-second behavioral windows are a useful *experimental* abstraction. Explicitly state the system is localhost-only, offline analysis.
 2. **Architecture (45 sec).** Walk through `NGINX → collector/ETL → request_id label join → 14 numeric features → group-separated ML → FastAPI/Streamlit`. Show [Architecture](PROJECT_ARCHITECTURE.md).
@@ -17,7 +17,7 @@ Capture screens from **your own working local dashboard** without browser tabs c
 - [ ] README reflects implemented components rather than aspirational React/Elasticsearch targets.
 - [ ] Instructions work from a clean checkout with a blank runtime data directory.
 - [ ] CI checks pass for Python 3.12, 3.13 and Docker smoke.
-- [ ] Restored Step 4–7 guides exist in `docs/`.
+- [ ] Restored Step 4-7 guides exist in `docs/`.
 - [ ] `python -m scripts.release_audit` completes successfully.
 - [ ] `git diff --cached --name-status` contains no `.env`, runtime logs, processed CSVs, or `.joblib` artifacts.
 - [ ] Experiment report discloses class prevalence, sample size, false negatives and data-generation limitations.

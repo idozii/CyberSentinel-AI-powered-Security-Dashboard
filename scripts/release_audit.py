@@ -45,6 +45,15 @@ REQUIRED_FILES = (
     "requirements-owner.txt",
     "docs/HUONG_DAN_BUOC_10.md",
     "docs/OWNER_PLATFORM_ROADMAP.md",
+    "owner_api/telemetry.py",
+    "cybersentinel_agent/__init__.py",
+    "cybersentinel_agent/client.py",
+    "cybersentinel_agent/cli.py",
+    "scripts/normalize_dashes.py",
+    "tests/test_step11_agent.py",
+    "docs/HUONG_DAN_BUOC_11.md",
+    "docs/OWNER_AGENT_SECURITY.md",
+    "pyproject.toml",
 )
 REQUIRED_GITIGNORE = (
     ".venv/",
@@ -67,6 +76,8 @@ def unsafe_tracked_path(raw: str) -> bool:
     if any(part in (".venv", "venv", "__pycache__") for part in parts):
         return True
     if basename == ".env" or (basename.startswith(".env.") and basename != ".env.example"):
+        return True
+    if any(part.endswith(".egg-info") for part in parts) or "build" in parts or "dist" in parts:
         return True
     if basename.endswith(SERIALIZED_SUFFIXES) or basename.endswith(".pyc"):
         return True

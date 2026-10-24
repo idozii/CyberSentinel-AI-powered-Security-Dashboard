@@ -1,4 +1,4 @@
-# CyberSentinel — Bước 7: FastAPI + Streamlit Experiment Explorer
+# CyberSentinel - Bước 7: FastAPI + Streamlit Experiment Explorer
 
 ## Phạm vi và bảo mật
 
@@ -24,7 +24,7 @@ unzip -l ~/Downloads/CyberSentinel_Buoc_7_Dashboard.zip
 unzip -o ~/Downloads/CyberSentinel_Buoc_7_Dashboard.zip -d .
 ```
 
-Bộ file khôi phục tài liệu Bước 4–5 vì chúng bị xóa ngoài ý muốn tại commit trước.
+Bộ file khôi phục tài liệu Bước 4-5 vì chúng bị xóa ngoài ý muốn tại commit trước.
 
 ## 7.2 Cài dependencies
 
