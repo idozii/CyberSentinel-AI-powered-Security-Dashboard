@@ -252,3 +252,18 @@ No browser OAuth login, public signup, or internet-facing owner portal is
 delivered in Step 16. Existing APIs and dashboards remain unchanged.
 
 See [Step 16 guide](docs/HUONG_DAN_BUOC_16.md) and [identity/database security](docs/STEP16_DATABASE_IDENTITY_SECURITY.md).
+
+## Step 16-17 - Neon/PostgreSQL and private Auth0 browser login
+
+The new `hosted_api/` stack is a separate local-only staging pilot. It does not
+replace the SQLite Owner API or the remote HTTPS ingest bridge from Steps 10-15.
+Neon schema `cs` uses a restricted Postgres runtime role and actor-scoped RLS.
+Step 17 adds a server-side Authorization Code + PKCE login for a private owner
+web portal on `http://127.0.0.1:8007`. Browser sessions stay in process memory,
+are short-lived and never contain bearer tokens in browser-accessible storage.
+Owner domain claims and DNS TXT verification use the PostgreSQL schema.
+
+See `docs/HUONG_DAN_BUOC_16.md` and `docs/HUONG_DAN_BUOC_17.md`.
+This is **not public SaaS**: PostgreSQL telemetry and alerts are not migrated,
+there is no distributed session store, HTTPS web-cookie configuration or audited
+production login deployment. Never bind the private portal to `0.0.0.0`.
