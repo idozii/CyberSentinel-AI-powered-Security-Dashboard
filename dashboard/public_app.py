@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import pandas as pd
 import streamlit as st
+import time
+from site_checker import SiteCheckError, check_website
 from public_data import load_public_metrics
 
 REPO = "https://github.com/idozii/CyberSentinel-AI-powered-Security-Dashboard"
@@ -50,8 +52,8 @@ with st.sidebar:
     st.markdown("### 🛡️ CyberSentinel")
     st.caption("AI-assisted security telemetry research")
     st.divider()
-    st.info("PUBLIC RESEARCH SHOWCASE\n\nStatic, aggregated lab results. Not live monitoring.")
-    page = st.radio("Explore", ["Overview", "Traffic & Features", "Model Evaluation", "Architecture & Limitations"])
+    st.info("LIVE: passive HTTPS header check.\n\nRESEARCH: static lab evaluation.\n\nOWNER MONITORING: planned, not yet available.")
+    page = st.radio("Explore", ["Website Checker", "Owner Monitoring (Roadmap)", "Overview", "Traffic & Features", "Model Evaluation", "Architecture & Limitations"])
     st.divider()
     st.link_button("Source on GitHub ↗", REPO, use_container_width=True)
     st.link_button("Read full experiment report ↗", REPORT, use_container_width=True)
@@ -59,13 +61,62 @@ with st.sidebar:
 
 st.markdown("""
 <div class="hero"><h1>CyberSentinel / Research Explorer</h1>
-<div class="subtitle">An end-to-end, controlled security telemetry study: from NGINX logs to
-interpretable anomaly-detection evaluation.</div>
-<span class="pill">PUBLIC STATIC DEMO · CONTROLLED LOCAL SIMULATION</span></div>
+<div class="subtitle">Passive public HTTPS configuration checks and transparent, controlled research results.</div>
+<span class="pill">LIVE HEADER CHECK · NO INTRUSIVE SCANNING · OWNER MONITORING PLANNED</span></div>
 """, unsafe_allow_html=True)
-st.caption(f"RECORDED EXPERIMENT · {source['date']} · seed {source['seed']} · {source['window_seconds']}-second windows · data provenance: user-reported local run")
+if page in ("Website Checker", "Owner Monitoring (Roadmap)"):
+    st.caption("CURRENT MODE: " + ("passive public HTTPS configuration check" if page == "Website Checker" else "owner monitoring product roadmap"))
+else:
+    st.caption(f"RECORDED EXPERIMENT · {source['date']} · seed {source['seed']} · {source['window_seconds']}-second windows · data provenance: user-reported local run")
 
-if page == "Overview":
+if page == "Website Checker":
+    st.subheader("Check public website configuration")
+    st.write("Enter a public domain to examine its **HTTPS certificate connection** and a few HTTP security headers. "
+             "CyberSentinel sends exactly one `HEAD /` request on HTTPS port 443; no redirects, crawling, "
+             "login attempts, vulnerability probes, or malicious-content analysis.")
+    st.warning("This is **not** a security certification or hacked/not-hacked verdict. "
+               "Some sites redirect or reject HEAD requests; those results will remain unscored.")
+    with st.form("check_public_site"):
+        domain = st.text_input("Public hostname", placeholder="www.example.com", max_chars=240)
+        submit = st.form_submit_button("Check HTTPS posture")
+    if submit:
+        # Per-session friction for the public demo, NOT a replacement for global
+        # ingress quotas/WAF/identity-based limits for unattended production.
+        history = [t for t in st.session_state.get("checker_attempts", []) if time.monotonic() - t < 600]
+        if len(history) >= 3:
+            st.error("Demo limit: 3 attempts per 10 minutes per browser session. Try again later.")
+        else:
+            history.append(time.monotonic())
+            st.session_state["checker_attempts"] = history
+            try:
+                with st.spinner("Checking one HTTPS response..."):
+                    result = check_website(domain)
+                st.success(f"TLS certificate verified for {result['hostname']}")
+                st.caption(f"Method: {result['method']} / · HTTP status: {result['http_status']} · Redirects: not followed")
+                if result["status"] == "evaluated":
+                    st.metric("Header configuration score", f"{result['score']} / {result['max_score']}")
+                    st.caption(result["disclaimer"])
+                    table = pd.DataFrame([{"Check": c["label"], "Result": "Observed" if c["passed"] else "Review", "Weight": c["points"]}
+                                          for c in result["checks"]])
+                    st.dataframe(table, hide_index=True, use_container_width=True)
+                    st.info("Scores only describe a handful of response headers and do not prove exploitability or safety.")
+                else:
+                    st.info(result["message"])
+            except SiteCheckError as exc:
+                st.error(str(exc))
+    st.caption("Privacy: no access log or result persistence is implemented in this demo. The checked website and its DNS resolver may observe your assessment request. "
+               "For a broadly public production service, add central rate limits and network egress restrictions.")
+
+elif page == "Owner Monitoring (Roadmap)":
+    st.subheader("CyberSentinel for website owners")
+    st.info("LIVE OWNER MONITORING IS NOT AVAILABLE YET. This page describes the next implementation phases.")
+    st.markdown("**1. Verify ownership** — sign in and prove domain control with DNS TXT or a restricted HTTPS challenge.")
+    st.markdown("**2. Install an agent** — consent-based log or OpenTelemetry integration; no bodies or credentials collected.")
+    st.markdown("**3. Review live alerts** — per-tenant ingestion, bounded time windows, rules, anomaly scores and retention controls.")
+    st.markdown("**4. Manage privacy** — revoke agent credentials, delete events and configure alert destinations.")
+    st.warning("The current Isolation Forest prototype missed 17/24 simulated attack windows in its holdout. It must not be used to make automatic security decisions for customer websites.")
+
+elif page == "Overview":
     a, b, c, d = st.columns(4)
     a.metric("Simulated requests", f"{source['simulated_requests']:,}")
     b.metric("Labels matched", f"{source['matched_requests']:,}")
