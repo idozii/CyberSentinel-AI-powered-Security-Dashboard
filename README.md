@@ -382,3 +382,19 @@ See [beta limitations](docs/BETA_GO_NO_GO.md).
 The isolated `http://127.0.0.1:8019/` demo now includes a responsive SOC-style dashboard with live-in-memory synthetic KPIs, event activity, HTTP response breakdown, alerts and an agent setup panel. Navigation links connect to existing triage, evaluation, tuning and operations pages. The new `/demo/readiness` page reports the unchanged NO-GO beta gate. No external UI assets, cloud hosting or production data are introduced.
 
 Start with `python -m scripts.step25_demo` and read `docs/HUONG_DAN_BUOC_31_32.md`. This is still a private localhost portfolio MVP, not a public beta or production SaaS.
+
+
+### Steps 33-35 - Durable watcher bridge (development-only)
+
+Existing Step 13 SQLite outbox now supports `csd_` localhost demo keys on
+`127.0.0.1:8019` and `csp_` PostgreSQL staging keys on `127.0.0.1:8008`
+or a strictly approved HTTPS origin, without changing the authenticated
+server behavior. Inspect queue health using:
+
+```bash
+python -m cybersentinel_agent.state_cli --state simulations/runtime/owner/demo-step33.sqlite3
+```
+
+See `docs/HUONG_DAN_BUOC_33_35.md` for the end-to-end localhost run and
+`docs/STEP33_35_DELIVERY_LIMITATIONS.md` for TTL, loss, capacity, and
+identity-rotation caveats. Local MVP and public beta remain distinct.

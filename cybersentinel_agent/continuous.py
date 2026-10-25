@@ -21,6 +21,31 @@ from typing import Callable
 from cybersentinel_agent.client import AgentError, MAX_LINE_BYTES, send_events, to_minimal_event, validate_ingest_origin
 
 MAX_QUEUE = 1000
+
+# Each identity class is restricted to its corresponding ingest origin.
+# A demo key must never be sent to PostgreSQL staging and vice versa.
+DEMO_TOKEN = re.compile(r'^csd_[A-Za-z0-9_-]{40,64}$')
+STAGING_TOKEN = re.compile(r'^csp_[a-f0-9]{32}_[A-Za-z0-9_-]{40,64}$')
+
+
+def validate_watcher_identity(server: str, key: str) -> None:
+    """Fail closed on any key / origin mismatch, before opening the outbox."""
+    if not isinstance(key, str):
+        raise AgentError('Invalid agent key for target origin')
+    if server == 'http://127.0.0.1:8002':
+        allowed = key.startswith('csa_') and len(key) >= 36
+    elif server == 'http://127.0.0.1:8019':
+        allowed = bool(DEMO_TOKEN.fullmatch(key))
+    elif server == 'http://127.0.0.1:8008':
+        allowed = bool(STAGING_TOKEN.fullmatch(key))
+    elif server.startswith('https://'):
+        # Step 14 already supports legacy csa_ HTTPS bridge credentials.
+        # Preserve that tested behavior; csp_ belongs to the Step 18 endpoint.
+        allowed = bool(STAGING_TOKEN.fullmatch(key)) or (key.startswith('csa_') and len(key) >= 36)
+    else:
+        allowed = False
+    if not allowed:
+        raise AgentError('Agent key type does not match the ingest origin')
 MAX_READ_PER_POLL = 100
 MAX_ROTATION_CANDIDATES = 32
 STALE_SECONDS = 300
@@ -136,11 +161,10 @@ class ContinuousAgent:
         if self.log_path.is_symlink():
             raise AgentError("Refusing a symlinked NGINX log")
         self.log_id = str(self.log_path)
-        validate_ingest_origin(server, allowed_remote_host)
+        origin = validate_ingest_origin(server, allowed_remote_host)
         if not re.fullmatch(r"[0-9a-f]{32}", domain_id):
             raise AgentError("Invalid domain ID")
-        if not key.startswith("csa_") or len(key) < 36:
-            raise AgentError("Invalid agent key")
+        validate_watcher_identity(origin, key)
         self.store = Outbox(state_path)
         if self.store.path == self.log_path:
             raise AgentError("State database and watched log cannot be the same file")
