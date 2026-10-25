@@ -111,6 +111,12 @@ jobs:
           python -m unittest discover -s tests -p test_step41_offline.py -v
           python -m scripts.step41_preflight
           python -m scripts.step41_release
+      - name: Steps 42-43 role-scoped adapter and migration readiness
+        run: |
+          python -m unittest discover -s tests -p test_step42_43_offline.py -v
+          python -m scripts.step42_43_preflight
+          python -m scripts.step42_43_release
+          python -m scripts.step43_migration_plan
       - name: Dependency consistency
         run: python -m pip check
 
@@ -231,6 +237,10 @@ jobs:
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
         run: python -m unittest discover -s tests -p test_step41_role_isolation_pg.py -v
+      - name: Steps 42-43 role-scoped repository isolation PostgreSQL proof
+        env:
+          CYBERSENTINEL_ISOLATED_PG_CI: '1'
+        run: python -m unittest discover -s tests -p test_step42_43_pg.py -v
       - name: Step 39 stolen-runtime-credential threat-model witness in disposable PostgreSQL
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
