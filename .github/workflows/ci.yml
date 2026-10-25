@@ -95,6 +95,12 @@ jobs:
           python -m unittest discover -s tests -p test_step33_35_delivery.py -v
           python -m scripts.step33_35_preflight
           python -m scripts.step35_release
+      - name: Steps 36-38 private recovery and operational regression
+        run: |
+          python -m unittest discover -s tests -p test_step36_38_safety.py -v
+          python -m scripts.step36_38_preflight
+          python -m scripts.step36_38_release
+          python -m scripts.step37_ops_report
       - name: Dependency consistency
         run: python -m pip check
 
@@ -209,6 +215,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_step16_postgres.py -v
       - name: Step 18 real PostgreSQL RLS and ingestion tests
         run: python -m unittest discover -s tests -p test_step18_postgres.py -v
+      - name: Step 36 disposable Postgres tenant isolation regression
+        run: python -m unittest discover -s tests -p test_step36_tenant_pg.py -v
       - name: Step 27 read-only RLS runtime metadata inspection
         run: |
           export CYBERSENTINEL_PG_RUNTIME_DSN="$CYBERSENTINEL_TEST_PG_RUNTIME_DSN"
