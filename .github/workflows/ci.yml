@@ -121,6 +121,10 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_step44_45_offline.py -v
           python -m scripts.step45_security_gate
+      - name: Steps 46-48 identity binding, migration and rollback design
+        run: |
+          python -m unittest discover -s tests -p test_step46_48_offline.py -v
+          python -m scripts.step48_release_gate
       - name: Dependency consistency
         run: python -m pip check
 
@@ -249,6 +253,10 @@ jobs:
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
         run: python -m unittest discover -s tests -p test_step44_45_pg.py -v
+      - name: Steps 46-48 isolated cs schema migration and rollback proof
+        env:
+          CYBERSENTINEL_ISOLATED_PG_CI: '1'
+        run: python -m unittest discover -s tests -p test_step46_48_pg.py -v
       - name: Step 39 stolen-runtime-credential threat-model witness in disposable PostgreSQL
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
