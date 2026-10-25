@@ -101,6 +101,11 @@ jobs:
           python -m scripts.step36_38_preflight
           python -m scripts.step36_38_release
           python -m scripts.step37_ops_report
+      - name: Steps 39-40 offline boundary audit and readiness gate
+        run: |
+          python -m unittest discover -s tests -p test_step39_40_safety.py -v
+          python -m scripts.step39_40_preflight
+          python -m scripts.step39_40_release
       - name: Dependency consistency
         run: python -m pip check
 
@@ -217,6 +222,10 @@ jobs:
         run: python -m unittest discover -s tests -p test_step18_postgres.py -v
       - name: Step 36 disposable Postgres tenant isolation regression
         run: python -m unittest discover -s tests -p test_step36_tenant_pg.py -v
+      - name: Step 39 stolen-runtime-credential threat-model witness in disposable PostgreSQL
+        env:
+          CYBERSENTINEL_ISOLATED_PG_CI: '1'
+        run: python -m unittest discover -s tests -p test_step39_actor_spoof_pg.py -v
       - name: Step 27 read-only RLS runtime metadata inspection
         run: |
           export CYBERSENTINEL_PG_RUNTIME_DSN="$CYBERSENTINEL_TEST_PG_RUNTIME_DSN"
