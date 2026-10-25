@@ -61,12 +61,16 @@ def install_disposable(admin_dsn: str, fixture: Fixture) -> None:
         conn.execute(sql.SQL('CREATE TABLE {}.tenant_events '
                              '(id uuid PRIMARY KEY, owner_id uuid NOT NULL, summary text NOT NULL)')
                      .format(schema))
-        conn.executemany(sql.SQL('INSERT INTO {}.tenant_logins(login_role,owner_id) '
-                                 'VALUES (%s,%s)').format(schema),
-                         zip(fixture.roles, fixture.owners))
-        conn.executemany(sql.SQL('INSERT INTO {}.tenant_events(id,owner_id,summary) '
-                                 'VALUES (%s,%s,%s)').format(schema),
-                         ((uuid.uuid4(), owner, f'tenant-{i}') for i, owner in enumerate(fixture.owners)))
+        # Psycopg 3 exposes executemany on Cursor, not Connection.
+        # Execute both fixture writes in the same admin transaction.
+        with conn.cursor() as cur:
+            cur.executemany(sql.SQL('INSERT INTO {}.tenant_logins(login_role,owner_id) '
+                                     'VALUES (%s,%s)').format(schema),
+                            list(zip(fixture.roles, fixture.owners)))
+            cur.executemany(sql.SQL('INSERT INTO {}.tenant_events(id,owner_id,summary) '
+                                     'VALUES (%s,%s,%s)').format(schema),
+                            [(uuid.uuid4(), owner, f'tenant-{i}')
+                             for i, owner in enumerate(fixture.owners)])
         for table in ('tenant_logins', 'tenant_events'):
             conn.execute(sql.SQL('ALTER TABLE {}.{} ENABLE ROW LEVEL SECURITY')
                          .format(schema, sql.Identifier(table)))
