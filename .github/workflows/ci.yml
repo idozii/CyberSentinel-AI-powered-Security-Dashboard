@@ -85,6 +85,11 @@ jobs:
           python -m scripts.step26_30_preflight
           python -m scripts.step26_30_release
           python -m scripts.step30_beta_gate --expect-blocked
+      - name: Steps 31-32 SOC dashboard UI and beta gate regression
+        run: |
+          python -m unittest discover -s tests -p test_step31_32_soc_ui.py -v
+          python -m scripts.step31_32_preflight
+          python -m scripts.step31_32_release
       - name: Dependency consistency
         run: python -m pip check
 
