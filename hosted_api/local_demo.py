@@ -17,16 +17,18 @@ import time
 import uuid
 from collections import deque
 from datetime import datetime, timezone
+from pathlib import Path
 from urllib.parse import parse_qs
 
 from fastapi import FastAPI, HTTPException, Request, Security
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from hosted_api.monitoring_models import TelemetryEvent
 from owner_api.detection import RULES, WINDOW_SECONDS
+from hosted_api.soc_ui import page as render_soc_page, dashboard as render_soc_dashboard
 
 DEMO_FLAG = 'CYBERSENTINEL_LOCAL_DEMO'
 DEMO_ORIGIN = 'http://127.0.0.1:8019'
@@ -43,6 +45,7 @@ RULE_TITLES = {
 METHODS = frozenset({'GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'})
 GROUPS = frozenset({'login', 'health', 'admin', 'api', 'other'})
 AUTH = HTTPBearer(auto_error=False)
+SOC_ASSETS = Path(__file__).resolve().parent / 'assets'
 
 
 class DemoBatch(BaseModel):
@@ -190,13 +193,30 @@ class DemoStore:
 
     def snapshot(self) -> dict:
         with self.lock:
+            # UI aggregates stay anonymous; never export keys, raw IPs or URLs.
+            minute = (int(time.time()) // 60) * 60
+            activity = [{'time': datetime.fromtimestamp(minute - offset * 60, timezone.utc).strftime('%H:%M'),
+                         'count': 0, 'start': minute - offset * 60}
+                        for offset in range(11, -1, -1)]
+            by_start = {row['start']: row for row in activity}
+            statuses = {'2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0}
+            for event in self.events:
+                occurred = (int(event['occurred_at']) // 60) * 60
+                if occurred in by_start:
+                    by_start[occurred]['count'] += 1
+                group = str(int(event['status_code']) // 100) + 'xx'
+                if group in statuses:
+                    statuses[group] += 1
+            for row in activity:
+                del row['start']
             return {'domain_id': self.domain_id.hex,
                     'key_issued': self._token_hash is not None,
                     'events': [dict(row) for row in reversed(self.events[-20:])],
                     'total_events': len(self.events),
                     'alerts': [dict(row) for row in sorted(
                         self.alerts.values(), key=lambda row: row['window_start'], reverse=True)],
-                    'total_alerts': len(self.alerts)}
+                    'total_alerts': len(self.alerts),
+                    'overview': {'activity': activity, 'http_status': statuses}}
 
 
 def _esc(value) -> str:
@@ -204,21 +224,7 @@ def _esc(value) -> str:
 
 
 def _page(title: str, content: str) -> HTMLResponse:
-    return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CyberSentinel Local Demo - ''' + _esc(title) + '''</title>
-<style>body{font:15px/1.55 system-ui,sans-serif;background:#0b1220;color:#e5eaf3;max-width:1080px;margin:24px auto;padding:0 16px}
-main{background:#172339;border:1px solid #30405f;border-radius:14px;padding:22px}
-h1{font-size:26px}h2{font-size:19px}a{color:#9cc4ff}small{color:#afbed4}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.card{border:1px solid #344968;background:#202f48;border-radius:10px;padding:15px;margin:8px 0}
-.value{font-size:26px;font-weight:700}code{overflow-wrap:anywhere;background:#071528;padding:2px 5px;border-radius:4px}
-button{padding:9px 15px;background:#3978d9;color:#fff;border:0;border-radius:7px;cursor:pointer}
-table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px;border-bottom:1px solid #344968;text-align:left}
-.notice{border-left:4px solid #e5a44d;padding:10px 14px;background:#3c3028}
-form{display:inline-block;margin:7px 0}</style></head><body>
-<h1>CyberSentinel <small>Local Demo - Step 19</small></h1><main><h2>''' + _esc(title) + '</h2>' + content + '''</main>
-<p><small>Synthetic test data only. No Auth0, Neon, PostgreSQL or external DNS.
-Restarting this one-worker process clears all demo data and agent keys.</small></p></body></html>''')
+    return HTMLResponse(render_soc_page(title, content))
 
 
 def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = None) -> FastAPI:
@@ -230,6 +236,14 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
                   redoc_url=None, openapi_url=None)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['127.0.0.1', 'localhost', 'testserver'])
     app.state.demo = db
+
+    @app.get('/demo/assets/soc.css')
+    def soc_stylesheet():
+        return Response((SOC_ASSETS / 'soc.css').read_text(encoding='utf-8'), media_type='text/css')
+
+    @app.get('/demo/assets/soc.js')
+    def soc_script():
+        return Response((SOC_ASSETS / 'soc.js').read_text(encoding='utf-8'), media_type='text/javascript')
 
     @app.middleware('http')
     async def loopback(req: Request, call_next):
@@ -254,7 +268,7 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
         # same-origin retains strict Origin+CSRF checks without this conflict.
         response.headers['Referrer-Policy'] = 'same-origin'
         response.headers['X-Frame-Options'] = 'DENY'
-        response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'"
         return response
 
     def csrf(req: Request) -> str:
@@ -287,43 +301,8 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
         token = req.cookies.get('demo_csrf', '')
         if len(token) != 43:
             token = secrets.token_urlsafe(32)
-        data = db.snapshot()
-        contents = '<p class="notice">Isolated and in-memory. Never use production credentials or logs here.</p>'
-        contents += '<div class="grid">'
-        for label, value in [('Demo events', data['total_events']), ('Demo alerts', data['total_alerts']), ('Active demo key', 'Yes' if data['key_issued'] else 'No')]:
-            contents += f'<div class="card"><small>{_esc(label)}</small><div class="value">{_esc(value)}</div></div>'
-        contents += '</div><p>Demo Domain ID: <code>' + _esc(data['domain_id']) + '</code></p>'
-        contents += ('<form method="post" action="/demo/key"><input type="hidden" name="_csrf" value="'+_esc(token)+'">'
-                     '<button type="submit">Generate new local demo key (resets data)</button></form>')
-        if message:
-            contents += '<div class="card">' + message + '</div>'
-        contents += ('<p>After copying your one-time <code>csd_</code> key, run the sample NGINX '
-                     'agent against <code>http://127.0.0.1:8019</code>. See '
-                     '<code>docs/HUONG_DAN_BUOC_19.md</code>.</p>')
-        contents += '<p><a href="/demo/operations">Step 28 - local operational counters</a></p>'
-        contents += ('<p><a href="/demo/evaluation">Step 20 - evaluate synthetic detection quality '
-                     '(precision, recall, false alarms and misses)</a></p>')
-        contents += ('<p><a href="/demo/tuning">Step 21 - offline threshold sensitivity '
-                     'and synthetic quality gate</a></p>')
-        contents += '<p><a href="/demo/alerts">Step 22 - triage, filter and inspect alert evidence</a></p>'
-        contents += '<h2>Detection alerts</h2>'
-        if not data['alerts']:
-            contents += '<p>No alerts yet. Send five synthetic login 401 events.</p>'
-        for a in data['alerts']:
-            contents += ('<div class="card"><strong>'+_esc(a['title'])+'</strong> - '+_esc(a['status'])+
-                         '<p>'+_esc(a['explanation'])+'</p><small>Observed '+_esc(a['observed_count'])+
-                         ' / threshold '+_esc(a['threshold_count'])+'</small>')
-            if a['status'] == 'open':
-                contents += ('<form method="post" action="/demo/ack/'+_esc(a['id'])+'">'
-                             '<input type="hidden" name="_csrf" value="'+_esc(token)+'">'
-                             '<button type="submit">Acknowledge</button></form>')
-            contents += '</div>'
-        contents += '<h2>Recent events</h2><table><tr><th>Status</th><th>Category</th><th>Source ref</th><th>Time (UTC)</th></tr>'
-        for e in data['events']:
-            iso = datetime.fromtimestamp(e['occurred_at'],timezone.utc).strftime('%H:%M:%S')
-            contents += '<tr><td>'+_esc(e['status_code'])+'</td><td>'+_esc(e['path_group'])+'</td><td><code>'+_esc(e['source_ref'][:12])+'</code></td><td>'+_esc(iso)+'</td></tr>'
-        contents += '</table>'
-        response = _page('Security monitoring playground', contents)
+        contents = render_soc_dashboard(db.snapshot(), token, message)
+        response = _page('Security overview', contents)
         response.set_cookie('demo_csrf', token, path='/', max_age=3600,
                             httponly=True, samesite='strict', secure=False)
         return response
@@ -449,6 +428,29 @@ def create_demo_app(store: DemoStore | None = None, *, enabled: bool | None = No
             lines.append('<li>'+_esc(group)+': '+_esc(n)+'</li>')
         lines.append('</ul><p><a href="/demo/alerts">Back to triage</a></p>')
         return _page('Alert evidence - Step 22', ''.join(lines))
+
+    @app.get('/demo/readiness')
+    def readiness_page():
+        # Read the bundled fail-closed example only. Not user evidence or an approval.
+        from scripts.step30_beta_gate import DEFAULT, assess
+        result = assess(json.loads(DEFAULT.read_text(encoding='utf-8')))
+        lines = [
+            '<p class="notice">Beta gate: BLOCKED. This is an offline, self-assessment '
+            'of missing prerequisites, not permission to deploy.</p>',
+            '<div class="grid"><div class="card"><small>Release decision</small>'
+            '<div class="value">NO-GO</div><p>Public deployment prohibited</p></div>',
+            '<div class="card"><small>Conditions outstanding</small><div class="value">'
+            + _esc(len(result['missing_conditions'])) + ' / '
+            + _esc(result['required_conditions']) + '</div></div></div>',
+            '<h2>Outstanding beta prerequisites</h2><table>'
+            '<tr><th>Requirement</th><th>State</th></tr>'
+        ]
+        for item in result['missing_conditions']:
+            lines.append('<tr><td>' + _esc(item.replace('_', ' ').capitalize())
+                         + '</td><td>Not evidenced</td></tr>')
+        lines.append('</table><p>Review <code>docs/BETA_GO_NO_GO.md</code> and obtain '
+                     'independent security validation before any public release.</p>')
+        return _page('Beta readiness - Step 31', ''.join(lines))
 
     @app.get('/demo/operations.json')
     def operations_json():

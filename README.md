@@ -376,3 +376,9 @@ The private demo operations view is at `http://127.0.0.1:8019/demo/operations`
 when the local Step 25 demo is running. The beta gate must remain BLOCKED
 until independent review and actual deployment/consent/operational evidence.
 See [beta limitations](docs/BETA_GO_NO_GO.md).
+
+## SOC UI v2 and beta preparation (Steps 31-32)
+
+The isolated `http://127.0.0.1:8019/` demo now includes a responsive SOC-style dashboard with live-in-memory synthetic KPIs, event activity, HTTP response breakdown, alerts and an agent setup panel. Navigation links connect to existing triage, evaluation, tuning and operations pages. The new `/demo/readiness` page reports the unchanged NO-GO beta gate. No external UI assets, cloud hosting or production data are introduced.
+
+Start with `python -m scripts.step25_demo` and read `docs/HUONG_DAN_BUOC_31_32.md`. This is still a private localhost portfolio MVP, not a public beta or production SaaS.
