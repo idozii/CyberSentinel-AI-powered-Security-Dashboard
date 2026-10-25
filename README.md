@@ -407,3 +407,16 @@ restore. Run `python -m scripts.step36_38_release` and see
 `docs/HUONG_DAN_BUOC_36_38.md`. This is NOT PostgreSQL disaster recovery and
 NOT authorization to deploy publicly. The shared runtime DB role's user-settable
 `cs.actor_id` remains a public-beta security-review blocker.
+
+
+### Steps 39-40 - Fail-closed public beta boundary audit
+
+The checked-in shared PostgreSQL runtime role uses a mutable `cs.actor_id` GUC.
+If the runtime DB credential is compromised, this GUC is not a database-enforced
+proof of tenant identity. A disposable PostgreSQL 17 CI witness documents the
+threat; production credentials and Neon are never used in this test. The
+step40 readiness report and restore/HTTPS runbook do NOT deploy, back up or
+restore live infrastructure. Public beta remains **NO-GO**.
+
+Run `python -m scripts.step39_40_release` and see
+`docs/HUONG_DAN_BUOC_39_40.md`.
