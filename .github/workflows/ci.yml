@@ -133,6 +133,10 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_step52_54_offline.py -v
           python -m scripts.step54_readiness
+      - name: Steps 55-57 tenant boundary admission offline regression
+        run: |
+          python -m unittest discover -s tests -p test_step55_57_offline.py -v
+          python -m scripts.step57_architecture_gate
       - name: Dependency consistency
         run: python -m pip check
 
@@ -273,6 +277,10 @@ jobs:
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
         run: python -m unittest discover -s tests -p test_step52_54_pg.py -v
+      - name: Steps 55-57 tenant session admission and isolation PostgreSQL proof
+        env:
+          CYBERSENTINEL_ISOLATED_PG_CI: '1'
+        run: python -m unittest discover -s tests -p test_step55_57_pg.py -v
       - name: Step 39 stolen-runtime-credential threat-model witness in disposable PostgreSQL
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
