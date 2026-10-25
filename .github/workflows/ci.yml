@@ -90,6 +90,11 @@ jobs:
           python -m unittest discover -s tests -p test_step31_32_soc_ui.py -v
           python -m scripts.step31_32_preflight
           python -m scripts.step31_32_release
+      - name: Steps 33-35 durable agent bridge and recovery tests
+        run: |
+          python -m unittest discover -s tests -p test_step33_35_delivery.py -v
+          python -m scripts.step33_35_preflight
+          python -m scripts.step35_release
       - name: Dependency consistency
         run: python -m pip check
 
