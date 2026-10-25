@@ -11,6 +11,7 @@ import streamlit as st
 import time
 from site_checker import SiteCheckError, check_website
 from public_data import load_public_metrics
+from public_soc_theme import apply_public_theme, render_public_hero
 
 REPO = "https://github.com/idozii/CyberSentinel-AI-powered-Security-Dashboard"
 REPORT = REPO + "/blob/main/docs/EXPERIMENT_RESULTS.md"
@@ -18,23 +19,8 @@ ARCH = REPO + "/blob/main/docs/PROJECT_ARCHITECTURE.md"
 REPRO = REPO + "/blob/main/docs/REPRODUCIBILITY.md"
 SECURITY = REPO + "/blob/main/docs/SECURITY_AND_LIMITATIONS.md"
 
-st.set_page_config(page_title="CyberSentinel | Research Showcase", page_icon="🛡️", layout="wide")
-st.markdown("""
-<style>
-.block-container {max-width: 1400px; padding-top: 2.0rem; padding-bottom: 3rem;}
-[data-testid="stSidebar"] {background: #0E1929;}
-[data-testid="stSidebar"] * {color: #E7F1FC !important;}
-div[data-testid="stMetric"] {border:1px solid #263A53; border-radius:13px; padding:14px 19px;
-                                background:linear-gradient(150deg,#14263A,#101B2B);}
-.hero {border:1px solid #314B64; border-radius:17px; padding:24px 28px;
-       background:linear-gradient(110deg,#142C40,#101927); margin-bottom:22px;}
-.hero h1 {font-size:2.05rem; font-weight:720; margin:0; color:#F1F9FF;}
-.hero .subtitle {margin-top:10px; color:#B3D6DC; line-height:1.5;}
-.pill {display:inline-block; margin-top:14px; color:#79E5D8; border:1px solid #337D7E;
-       padding:5px 11px; border-radius:50px; font-size:0.78rem; font-weight:650;}
-.muted {color:#AFC0D1; font-size:0.91rem;}
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="CyberSentinel | Public SOC Research", page_icon="🛡️", layout="wide", initial_sidebar_state="expanded")
+apply_public_theme(st)
 
 try:
     data = load_public_metrics()
@@ -50,20 +36,16 @@ model = data["model"]
 
 with st.sidebar:
     st.markdown("### 🛡️ CyberSentinel")
-    st.caption("AI-assisted security telemetry research")
+    st.caption("PUBLIC SOC UI 2.1 / RESEARCH SHOWCASE")
     st.divider()
-    st.info("LIVE: passive HTTPS header check.\n\nRESEARCH: static lab evaluation.\n\nOWNER MONITORING: planned, not yet available.")
+    st.info("LIVE: passive HTTPS header check.\n\nRESEARCH: static lab evaluation.\n\nOWNER MONITORING: private localhost demo only; not connected here.")
     page = st.radio("Explore", ["Website Checker", "Owner Monitoring (Roadmap)", "Overview", "Traffic & Features", "Model Evaluation", "Architecture & Limitations"])
     st.divider()
     st.link_button("Source on GitHub ↗", REPO, use_container_width=True)
     st.link_button("Read full experiment report ↗", REPORT, use_container_width=True)
     st.caption("No raw logs, private IP addresses, credentials or model files are hosted by this app.")
 
-st.markdown("""
-<div class="hero"><h1>CyberSentinel / Research Explorer</h1>
-<div class="subtitle">Passive public HTTPS configuration checks and transparent, controlled research results.</div>
-<span class="pill">LIVE HEADER CHECK · NO INTRUSIVE SCANNING · OWNER MONITORING PLANNED</span></div>
-""", unsafe_allow_html=True)
+render_public_hero(st)
 if page in ("Website Checker", "Owner Monitoring (Roadmap)"):
     st.caption("CURRENT MODE: " + ("passive public HTTPS configuration check" if page == "Website Checker" else "owner monitoring product roadmap"))
 else:
@@ -237,4 +219,4 @@ else:
     st.link_button("Security and limitations ↗", SECURITY)
 
 st.divider()
-st.caption("CyberSentinel · Educational/research prototype · Aggregate report from one local experiment · Source and documentation on GitHub")
+st.caption("CyberSentinel · Public SOC UI v2.1 · Synthetic aggregate research only · No live customer monitoring")
