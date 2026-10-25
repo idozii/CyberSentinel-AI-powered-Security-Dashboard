@@ -398,3 +398,12 @@ python -m cybersentinel_agent.state_cli --state simulations/runtime/owner/demo-s
 See `docs/HUONG_DAN_BUOC_33_35.md` for the end-to-end localhost run and
 `docs/STEP33_35_DELIVERY_LIMITATIONS.md` for TTL, loss, capacity, and
 identity-rotation caveats. Local MVP and public beta remain distinct.
+
+## Steps 36-38 - Tenant boundary regression and private recovery
+
+Disposable PostgreSQL CI adds multi-owner isolation checks; localhost tools report
+private agent queue health and support create-only SQLite outbox snapshot and
+restore. Run `python -m scripts.step36_38_release` and see
+`docs/HUONG_DAN_BUOC_36_38.md`. This is NOT PostgreSQL disaster recovery and
+NOT authorization to deploy publicly. The shared runtime DB role's user-settable
+`cs.actor_id` remains a public-beta security-review blocker.
