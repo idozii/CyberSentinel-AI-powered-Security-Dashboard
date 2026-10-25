@@ -420,3 +420,15 @@ restore live infrastructure. Public beta remains **NO-GO**.
 
 Run `python -m scripts.step39_40_release` and see
 `docs/HUONG_DAN_BUOC_39_40.md`.
+
+
+### Step 41 - Isolated database-login tenant boundary proof
+
+Step 41 demonstrates RLS based on a tenant's *database login role* with a
+read-only role-to-owner mapping, not on the mutable `cs.actor_id` GUC. The
+proof creates disposable test users/tables in GitHub CI PostgreSQL 17 only.
+**It does not migrate the application, change the existing shared runtime
+credential, or authorize public beta.** Never run the test against Neon.
+
+Run `python -m scripts.step41_release` and read
+`docs/HUONG_DAN_BUOC_41.md` and `docs/STEP41_TENANT_ROLE_SECURITY.md`.
