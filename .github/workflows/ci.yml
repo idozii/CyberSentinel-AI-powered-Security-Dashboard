@@ -117,6 +117,10 @@ jobs:
           python -m scripts.step42_43_preflight
           python -m scripts.step42_43_release
           python -m scripts.step43_migration_plan
+      - name: Steps 44-45 disposable credential and security gates
+        run: |
+          python -m unittest discover -s tests -p test_step44_45_offline.py -v
+          python -m scripts.step45_security_gate
       - name: Dependency consistency
         run: python -m pip check
 
@@ -241,6 +245,10 @@ jobs:
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
         run: python -m unittest discover -s tests -p test_step42_43_pg.py -v
+      - name: Steps 44-45 disposable role lifecycle PostgreSQL proof
+        env:
+          CYBERSENTINEL_ISOLATED_PG_CI: '1'
+        run: python -m unittest discover -s tests -p test_step44_45_pg.py -v
       - name: Step 39 stolen-runtime-credential threat-model witness in disposable PostgreSQL
         env:
           CYBERSENTINEL_ISOLATED_PG_CI: '1'
