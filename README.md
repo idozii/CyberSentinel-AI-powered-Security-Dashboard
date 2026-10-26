@@ -1,5 +1,7 @@
 # CyberSentinel - AI-Assisted Security Telemetry Lab
 
+> **Final portfolio checklist:** [Portfolio 100% Acceptance](docs/PORTFOLIO_100_ACCEPTANCE.md) covers clean-clone QA, screenshots, video, evidence and a GitHub release. The cloud-free demo remains available via `python -m scripts.zero_cost_portfolio demo`.
+
 > **Cloud-free portfolio milestone:** Launch the static SOC research demo on localhost without Neon, Auth0 or Docker. See [Zero-Cost Portfolio Release](docs/ZERO_COST_PORTFOLIO_RELEASE.md).
 
 **Reproducible, localhost-only security telemetry experiments with NGINX, Python, Isolation Forest, FastAPI, and Streamlit.**
