@@ -1,5 +1,7 @@
 # CyberSentinel - AI-Assisted Security Telemetry Lab
 
+> **Cloud-free portfolio milestone:** Launch the static SOC research demo on localhost without Neon, Auth0 or Docker. See [Zero-Cost Portfolio Release](docs/ZERO_COST_PORTFOLIO_RELEASE.md).
+
 **Reproducible, localhost-only security telemetry experiments with NGINX, Python, Isolation Forest, FastAPI, and Streamlit.**
 
 > **Research/educational prototype - not a production intrusion detection system (IDS).** The dashboard explores *offline, controlled lab experiments*. The API does not perform live detection; the reported labels describe scripted simulations, not independently verified incidents.
