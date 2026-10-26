@@ -8,6 +8,17 @@
 
 > **Research/educational prototype - not a production intrusion detection system (IDS).** The dashboard explores *offline, controlled lab experiments*. The API does not perform live detection; the reported labels describe scripted simulations, not independently verified incidents.
 
+## Getting Started
+
+New to CyberSentinel?
+
+**[Local Setup & First-Time User Guide](docs/LOCAL_SETUP.md)**
+
+Clone the repository and choose between the research
+dashboard, interactive SOC demo, or full ML experiment.
+
+No Neon, Auth0, or paid cloud services required.
+
 ## What works today
 
 - **Local traffic generator:** bounded benign visits, failed logins, URL scans, and mixed scenarios against a Docker lab bound to `127.0.0.1`.
