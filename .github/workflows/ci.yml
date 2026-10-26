@@ -141,6 +141,11 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_step58_63_offline.py -v
           python -m scripts.step63_security_gate
+      - name: Zero-cost offline portfolio release and regression
+        run: |
+          python -m unittest discover -s tests -p test_zero_cost_portfolio.py -v
+          python -m scripts.zero_cost_portfolio audit
+          python -m scripts.zero_cost_portfolio audit --full
       - name: Dependency consistency
         run: python -m pip check
 

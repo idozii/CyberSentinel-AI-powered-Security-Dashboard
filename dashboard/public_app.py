@@ -6,6 +6,7 @@ header checker. No monitoring store, credentials, raw logs or live alerts.
 """
 from __future__ import annotations
 
+import os
 import time
 from html import escape
 
@@ -22,6 +23,9 @@ ARCH = REPO + "/blob/main/docs/PROJECT_ARCHITECTURE.md"
 REPRO = REPO + "/blob/main/docs/REPRODUCIBILITY.md"
 SECURITY = REPO + "/blob/main/docs/SECURITY_AND_LIMITATIONS.md"
 NAV = ["Overview", "Website checker", "Traffic & features", "Model evaluation", "Architecture", "Owner roadmap"]
+OFFLINE_ONLY = os.environ.get('CYBERSENTINEL_OFFLINE_ONLY') == '1'
+if OFFLINE_ONLY:
+    NAV = [name for name in NAV if name != 'Website checker']
 CLASS_LABELS = {
     "simulated_benign": "Benign",
     "simulated_brute_force": "Brute-force",
@@ -106,14 +110,14 @@ if page == "Overview":
         st.markdown("### Public website checker")
         st.caption("One passive HTTPS HEAD request on port 443. No scanning or exploit tests.")
         st.button("Open HTTPS checker", type="primary", use_container_width=True,
-                  on_click=_navigate, args=("Website checker",))
+                  on_click=_navigate, args=("Website checker",), disabled=OFFLINE_ONLY)
     with b:
         st.markdown("### Detailed model evaluation")
         st.caption("Precision, recall, confusion matrix, and known failure modes.")
         st.button("Open model evaluation", use_container_width=True,
                   on_click=_navigate, args=("Model evaluation",))
 
-elif page == "Website checker":
+elif page == "Website checker" and not OFFLINE_ONLY:
     st.markdown(notice("PASSIVE HTTPS HEADER CHECK ONLY. This is not a security certification, vulnerability scan, or hacked/not-hacked verdict."),
                 unsafe_allow_html=True)
     st.markdown("### Check one public HTTPS hostname")
